@@ -717,10 +717,121 @@ h1 {
 .skill-card:hover,
 .project-card:hover,
 .timeline-item:hover,
-.internship-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(255, 216, 77, 0.42);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55), 0 0 36px rgba(255, 216, 77, 0.09);
+.internship-card:hover,
+.id-panel:hover {
+  transform: translateY(-7px) scale(1.015);
+  border-color: rgba(255, 216, 77, 0.6);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.6),
+    0 0 46px rgba(255, 216, 77, 0.14),
+    inset 0 0 26px rgba(255, 216, 77, 0.05);
+}
+
+/* Idle float: uses the `translate` property so it composes with hover transforms */
+@keyframes card-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+.skill-card,
+.project-card,
+.timeline-item,
+.internship-card,
+.id-panel {
+  animation: card-float 7s ease-in-out infinite;
+}
+
+.skill-card:nth-child(2n),
+.project-card:nth-child(2n),
+.timeline-item:nth-child(2n),
+.internship-card:nth-child(2n) {
+  animation-delay: -2.4s;
+}
+
+.skill-card:nth-child(3n),
+.project-card:nth-child(3n) {
+  animation-delay: -4.2s;
+}
+
+/* Pulsing corner glow (shared ::after orb) */
+@keyframes card-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-4px, -4px) scale(1.18);
+  }
+}
+
+.skill-card::after,
+.project-card::after,
+.timeline-item::after,
+.internship-card::after,
+.id-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto 1rem 1rem auto;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 216, 77, 0.16), transparent 64%);
+  pointer-events: none;
+  animation: card-glow 5.5s ease-in-out infinite;
+  transition: opacity 220ms ease;
+}
+
+.skill-card:hover::after,
+.project-card:hover::after,
+.timeline-item:hover::after,
+.internship-card:hover::after,
+.id-panel:hover::after {
+  background: radial-gradient(circle, rgba(255, 216, 77, 0.3), transparent 66%);
+}
+
+/* Sheen sweep on hover (cards with a free ::before) */
+.skill-card::before,
+.timeline-item::before,
+.internship-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 216, 77, 0.14) 50%, transparent 68%);
+  transform: translateX(-130%);
+  transition: transform 520ms ease;
+  pointer-events: none;
+}
+
+.skill-card:hover::before,
+.timeline-item:hover::before,
+.internship-card:hover::before {
+  transform: translateX(130%);
+}
+
+/* Icon / emblem zoom on hover */
+.skill-icon {
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.skill-card:hover .skill-icon {
+  transform: scale(1.14) rotate(-5deg);
+  border-color: rgba(255, 216, 77, 0.7);
+  box-shadow: 0 0 24px rgba(255, 216, 77, 0.35);
+}
+
+.project-card:hover .project-emblem {
+  transform: scale(1.2) rotate(8deg);
+}
+
+.project-emblem {
+  transition: transform 220ms ease;
 }
 
 .prose-panel,
@@ -745,16 +856,8 @@ h1 {
   transform: perspective(900px) rotateY(-6deg);
 }
 
-.id-panel::after,
-.project-card::after {
-  content: "";
-  position: absolute;
-  inset: auto 1rem 1rem auto;
-  width: 5rem;
-  height: 5rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 216, 77, 0.13), transparent 64%);
-  pointer-events: none;
+.id-panel:hover {
+  transform: perspective(900px) rotateY(-4deg) translateY(-7px) scale(1.015);
 }
 
 .card-emblem {

@@ -1,83 +1,128 @@
+const SONG_PATH = "/audio/dark-knight-rises.mp3";
+
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let nodes: AudioNode[] = [];
+let motifTimer: ReturnType<typeof setTimeout> | null = null;
+let droneNodes: AudioNode[] = [];
+let songEl: HTMLAudioElement | null = null;
 
-function buildDrone() {
-  if (!ctx || !master) return;
-  nodes.forEach((n) => {
+/* Low, brooding melody scheduler — a dark two-bar motif in D minor. */
+const MOTIF = [
+  { f: 146.83, d: 0.5 }, // D3
+  { f: 220.0, d: 0.32 }, // A3
+  { f: 174.61, d: 0.5 }, // F3
+  { f: 293.66, d: 0.34 }, // D4
+  { f: 174.61, d: 0.62 }, // F3
+  { f: 220.0, d: 0.5 }, // A3
+];
+
+function stopMotif() {
+  if (motifTimer) {
+    clearTimeout(motifTimer);
+    motifTimer = null;
+  }
+  droneNodes.forEach((n) => {
     try {
       n.disconnect();
     } catch {
       /* noop */
     }
   });
-  nodes = [];
-
-  const mkOsc = (freq: number, type: OscillatorType, gain: number, detune = 0) => {
-    const osc = ctx!.createOscillator();
-    const g = ctx!.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    osc.detune.value = detune;
-    g.gain.setValueAtTime(0.0001, ctx!.currentTime);
-    g.gain.exponentialRampToValueAtTime(gain, ctx!.currentTime + 1.6);
-    osc.connect(g);
-    g.connect(master!);
-    osc.start();
-    nodes.push(osc, g);
-    return osc;
-  };
-
-  const lfo = ctx.createOscillator();
-  const lfoGain = ctx.createGain();
-  lfo.frequency.value = 0.09;
-  lfoGain.gain.value = 0.04;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 180;
-  filter.Q.value = 6;
-  filter.connect(master);
-  lfo.connect(lfoGain);
-  lfoGain.connect(filter.frequency);
-  lfo.start();
-  nodes.push(lfo, lfoGain, filter);
-
-  const droneOsc = mkOsc(55, "sine", 0.05);
-  mkOsc(82.4, "sine", 0.03, 4);
-  mkOsc(110, "triangle", 0.02, -3);
-  droneOsc.connect(filter);
+  droneNodes = [];
 }
 
-export function enableAmbientSound() {
-  if (ctx) {
-    if (ctx.state === "suspended") ctx.resume();
+function startMotif() {
+  if (!ctx || !master) return;
+  stopMotif();
+  if (ctx.state === "suspended") ctx.resume();
+
+  /* Low sustained pedal tone for weight. */
+  const pedal = ctx.createOscillator();
+  pedal.type = "sine";
+  pedal.frequency.value = 73.42; // D2
+  const pedalGain = ctx.createGain();
+  pedalGain.gain.value = 0.045;
+  pedal.connect(pedalGain);
+  pedalGain.connect(master);
+  pedal.start();
+  droneNodes.push(pedal, pedalGain);
+
+  const step = (i: number) => {
+    if (!ctx || !master) return;
+    const note = MOTIF[i % MOTIF.length];
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc.type = "sawtooth";
+    osc.frequency.value = note.f;
+    osc.detune.value = -6;
+    filter.type = "lowpass";
+    filter.frequency.value = 520;
+    filter.Q.value = 2.5;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + note.d);
+    osc.connect(filter);
+    filter.connect(g);
+    g.connect(master);
+    osc.start(t0);
+    osc.stop(t0 + note.d + 0.05);
+    droneNodes.push(osc, g, filter);
+    motifTimer = setTimeout(() => step(i + 1), note.d * 1000 + 620);
+  };
+  step(0);
+}
+
+/* Try to play the real theme; fall back to the synthesized motif. */
+function playSong() {
+  return new Promise<void>((resolve) => {
+    const audio = new Audio(SONG_PATH);
+    let done = false;
+    const sw = setTimeout(() => finish(false), 3000);
+    function finish(ok: boolean) {
+      if (done) return;
+      done = true;
+      clearTimeout(sw);
+      if (!ok) {
+        audio.pause();
+        songEl = null;
+        startMotif();
+      } else {
+        songEl = audio;
+      }
+      resolve();
+    }
+    audio.loop = true;
+    audio.volume = 0.55;
+    audio.addEventListener("error", () => finish(false), { once: true });
+    audio.addEventListener("canplay", () => finish(true), { once: true });
+    audio.play().catch(() => finish(false));
+  });
+}
+
+export async function enableAmbientSound() {
+  if (!ctx) {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = 0.6;
+    master.connect(ctx.destination);
+  }
+  if (ctx.state === "suspended") await ctx.resume();
+
+  if (songEl) {
+    if (songEl.paused) await songEl.play().catch(() => undefined);
     return;
   }
-  const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  ctx = new AC();
-  master = ctx.createGain();
-  master.gain.value = 0.7;
-  master.connect(ctx.destination);
-  buildDrone();
-  const noise = ctx.createBufferSource();
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.18;
-  noise.buffer = buffer;
-  noise.loop = true;
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.value = 0.012;
-  const noiseFilter = ctx.createBiquadFilter();
-  noiseFilter.type = "lowpass";
-  noiseFilter.frequency.value = 420;
-  noise.connect(noiseFilter);
-  noiseFilter.connect(noiseGain);
-  noiseGain.connect(master);
-  noise.start();
-  nodes.push(noise, noiseGain, noiseFilter);
+  await playSong();
 }
 
 export function disableAmbientSound() {
-  if (!ctx) return;
-  ctx.suspend();
+  if (songEl) {
+    songEl.pause();
+    return;
+  }
+  stopMotif();
+  if (ctx && ctx.state === "running") ctx.suspend();
 }

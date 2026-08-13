@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/purity -- random scene-data generation during render is standard for three.js */
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Stars } from "@react-three/drei";
+import { Stars } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useMemo, useRef } from "react";
@@ -21,17 +21,17 @@ export default function NeuralScene() {
       >
         <color attach="background" args={["#04050a"]} />
         <fog attach="fog" args={["#04050a", 9, 26]} />
-        <ambientLight intensity={0.35} />
+        <ambientLight intensity={0.4} />
         <pointLight position={[0, 6, 4]} color="#ffd84d" intensity={70} />
         <pointLight position={[-6, -4, 5]} color="#3c4757" intensity={22} />
         <pointLight position={[6, 2, 3]} color="#ffd84d" intensity={24} />
+        <pointLight position={[0, 2.5, -6]} color="#9fb3d1" intensity={30} />
+        <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={26} />
         <CameraRig />
         <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />
-        <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.6}>
-          <BatEmblem />
-          <ParticleGalaxy />
-          <PipelineRings />
-        </Float>
+        <BatmanFigure />
+        <ParticleGalaxy />
+        <PipelineRings />
         <GothamRain />
         <BatSignalBeam />
         <LightningController />
@@ -41,7 +41,7 @@ export default function NeuralScene() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bat emblem: extruded from the bat logo silhouette                    */
+/* Bat logo silhouette (reused for the chest emblem)                    */
 /* ------------------------------------------------------------------ */
 function batShape(): THREE.Shape {
   const pts: [number, number][] = [
@@ -71,77 +71,222 @@ function batShape(): THREE.Shape {
   return shape;
 }
 
-function BatEmblem() {
+/* ------------------------------------------------------------------ */
+/* The Dark Knight: procedural armored figure with an animated cape     */
+/* ------------------------------------------------------------------ */
+function BatmanFigure() {
   const groupRef = useRef<THREE.Group>(null);
-  const coreRef = useRef<THREE.Mesh>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const capeRef = useRef<THREE.Group>(null);
+  const capeMeshRef = useRef<THREE.Mesh>(null);
 
-  const { geo, coreGeo } = useMemo(() => {
-    const shape = batShape();
-    const geo = new THREE.ExtrudeGeometry(shape, {
-      depth: 0.28,
-      bevelEnabled: true,
-      bevelThickness: 0.1,
-      bevelSize: 0.06,
-      bevelSegments: 4,
-      steps: 2,
-    });
+  const armor = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#16181f", metalness: 0.72, roughness: 0.36 }),
+    []
+  );
+  const armorDark = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#0b0d12", metalness: 0.6, roughness: 0.5 }),
+    []
+  );
+  const steel = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: "#2a2f38", metalness: 0.85, roughness: 0.28 }),
+    []
+  );
+  const gold = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#ffd84d",
+        metalness: 1,
+        roughness: 0.24,
+        emissive: "#ffd84d",
+        emissiveIntensity: 0.3,
+      }),
+    []
+  );
+  const capeMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#0a0c11",
+        roughness: 0.9,
+        metalness: 0.3,
+        side: THREE.DoubleSide,
+      }),
+    []
+  );
+  const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#fff6d8" }), []);
+
+  const emblemGeo = useMemo(() => {
+    const geo = new THREE.ExtrudeGeometry(batShape(), { depth: 0.06, bevelEnabled: false });
     geo.center();
-    const coreGeo = new THREE.ExtrudeGeometry(shape, {
-      depth: 0.05,
-      bevelEnabled: false,
-    });
-    coreGeo.center();
-    return { geo, coreGeo };
+    geo.scale(0.1, 0.1, 1);
+    return geo;
   }, []);
 
-  const glowTexture = useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 256;
-    const g = c.getContext("2d")!;
-    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    grad.addColorStop(0, "rgba(255,216,77,0.55)");
-    grad.addColorStop(0.4, "rgba(255,216,77,0.16)");
-    grad.addColorStop(1, "rgba(255,216,77,0)");
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 256, 256);
-    const tex = new THREE.CanvasTexture(c);
-    return tex;
+  const { geometry: capeGeo, base } = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(3.4, 2.7, 14, 16);
+    geo.translate(0, -2.7 / 2, 0);
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    const base = new Float32Array(pos.array as Float32Array);
+    return { geometry: geo, base };
   }, []);
 
   useFrame(({ clock, pointer }) => {
-    if (!groupRef.current || !coreRef.current) return;
     const t = clock.elapsedTime;
-    groupRef.current.rotation.y = Math.sin(t * 0.22) * 0.55 + pointer.x * 0.25;
-    groupRef.current.rotation.x = pointer.y * 0.18;
-    groupRef.current.position.y = Math.sin(t * 0.6) * 0.12;
-    const mat = coreRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = 0.55 + Math.sin(t * 1.4) * 0.2;
+    if (groupRef.current) {
+      groupRef.current.position.y = -0.25 + Math.sin(t * 1.4) * 0.05;
+      groupRef.current.rotation.y = pointer.x * 0.28 + Math.sin(t * 0.32) * 0.1;
+      groupRef.current.rotation.x = pointer.y * 0.08;
+      groupRef.current.rotation.z = Math.sin(t * 0.5) * 0.02;
+    }
+    if (torsoRef.current) {
+      torsoRef.current.scale.y = 1 + Math.sin(t * 1.6) * 0.012;
+    }
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 0.45) * 0.22;
+    }
+    if (capeRef.current) {
+      capeRef.current.rotation.y = Math.sin(t * 0.8) * 0.09;
+      const geo = capeMeshRef.current?.geometry;
+      if (geo) {
+        const pos = geo.attributes.position as THREE.BufferAttribute;
+        const arr = pos.array as Float32Array;
+        for (let i = 0; i < arr.length; i += 3) {
+          const x = base[i];
+          const y = base[i + 1];
+          const depth = (y + 2.7) / 2.7;
+          const sway =
+            Math.sin(t * 1.9 + x * 1.4 + y * 0.9) * 0.26 * depth +
+            Math.sin(t * 1.1 + y * 2.4) * 0.1 * depth;
+          arr[i] = x + Math.sin(t * 1.3 + y * 1.1) * 0.07 * depth;
+          arr[i + 1] = y;
+          arr[i + 2] = sway;
+        }
+        pos.needsUpdate = true;
+        geo.computeVertexNormals();
+      }
+    }
   });
 
   return (
-    <group position={[0, 1.4, 0]}>
-      <sprite position={[0, 0, -0.9]}>
-        <spriteMaterial map={glowTexture} transparent opacity={0.8} depthWrite={false} />
-      </sprite>
+    <group>
       <group ref={groupRef}>
-        <mesh geometry={geo} castShadow>
-          <meshStandardMaterial
-            color="#1a1d26"
-            metalness={0.85}
-            roughness={0.32}
-            emissive="#ffd84d"
-            emissiveIntensity={0.22}
-          />
+        {/* legs */}
+        <mesh material={armor} position={[-0.28, -0.95, 0]}>
+          <boxGeometry args={[0.42, 1.15, 0.42]} />
         </mesh>
-        <mesh ref={coreRef} geometry={coreGeo} position={[0, 0, 0.16]}>
-          <meshBasicMaterial
-            color="#ffd84d"
-            transparent
-            opacity={0.62}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-          />
+        <mesh material={armor} position={[0.28, -0.95, 0]}>
+          <boxGeometry args={[0.42, 1.15, 0.42]} />
         </mesh>
+        {/* boots */}
+        <mesh material={armorDark} position={[-0.28, -1.68, 0.06]}>
+          <boxGeometry args={[0.5, 0.34, 0.72]} />
+        </mesh>
+        <mesh material={armorDark} position={[0.28, -1.68, 0.06]}>
+          <boxGeometry args={[0.5, 0.34, 0.72]} />
+        </mesh>
+        <mesh material={gold} position={[-0.28, -1.52, 0.4]}>
+          <boxGeometry args={[0.14, 0.05, 0.04]} />
+        </mesh>
+        <mesh material={gold} position={[0.28, -1.52, 0.4]}>
+          <boxGeometry args={[0.14, 0.05, 0.04]} />
+        </mesh>
+
+        {/* belt */}
+        <mesh material={armorDark} position={[0, -0.42, 0]}>
+          <boxGeometry args={[0.98, 0.24, 0.4]} />
+        </mesh>
+        <mesh material={gold} position={[0, -0.42, 0.22]}>
+          <boxGeometry args={[0.26, 0.18, 0.06]} />
+        </mesh>
+
+        {/* torso */}
+        <mesh ref={torsoRef} material={armor} position={[0, 0.18, 0]}>
+          <boxGeometry args={[1.0, 1.15, 0.6]} />
+        </mesh>
+        <mesh material={steel} position={[0, 0.3, 0.04]}>
+          <boxGeometry args={[1.04, 0.8, 0.62]} />
+        </mesh>
+        <mesh material={armorDark} position={[0, -0.06, 0.06]}>
+          <boxGeometry args={[0.6, 0.68, 0.54]} />
+        </mesh>
+        {/* chest emblem */}
+        <mesh geometry={emblemGeo} material={gold} position={[0, 0.3, 0.34]} />
+
+        {/* shoulders */}
+        <mesh material={armor} position={[-0.62, 0.78, 0]}>
+          <sphereGeometry args={[0.34, 24, 20]} />
+        </mesh>
+        <mesh material={armor} position={[0.62, 0.78, 0]}>
+          <sphereGeometry args={[0.34, 24, 20]} />
+        </mesh>
+        <mesh material={steel} position={[-0.62, 1.06, 0]}>
+          <coneGeometry args={[0.12, 0.24, 16]} />
+        </mesh>
+        <mesh material={steel} position={[0.62, 1.06, 0]}>
+          <coneGeometry args={[0.12, 0.24, 16]} />
+        </mesh>
+
+        {/* arms */}
+        <mesh material={armor} position={[-0.68, 0.4, 0]} rotation={[0, 0, 0.14]}>
+          <boxGeometry args={[0.3, 0.6, 0.3]} />
+        </mesh>
+        <mesh material={armor} position={[0.68, 0.4, 0]} rotation={[0, 0, -0.14]}>
+          <boxGeometry args={[0.3, 0.6, 0.3]} />
+        </mesh>
+        {/* gauntlets with spikes */}
+        <mesh material={armorDark} position={[-0.72, -0.02, 0.02]}>
+          <boxGeometry args={[0.34, 0.52, 0.36]} />
+        </mesh>
+        <mesh material={armorDark} position={[0.72, -0.02, 0.02]}>
+          <boxGeometry args={[0.34, 0.52, 0.36]} />
+        </mesh>
+        <mesh material={steel} position={[-0.72, 0.26, 0.02]}>
+          <coneGeometry args={[0.035, 0.16, 10]} />
+        </mesh>
+        <mesh material={steel} position={[0.72, 0.26, 0.02]}>
+          <coneGeometry args={[0.035, 0.16, 10]} />
+        </mesh>
+        <mesh material={steel} position={[-0.72, 0.12, 0.02]}>
+          <coneGeometry args={[0.035, 0.16, 10]} />
+        </mesh>
+        <mesh material={steel} position={[0.72, 0.12, 0.02]}>
+          <coneGeometry args={[0.035, 0.16, 10]} />
+        </mesh>
+        {/* fists */}
+        <mesh material={armor} position={[-0.72, -0.3, 0.02]}>
+          <boxGeometry args={[0.3, 0.28, 0.3]} />
+        </mesh>
+        <mesh material={armor} position={[0.72, -0.3, 0.02]}>
+          <boxGeometry args={[0.3, 0.28, 0.3]} />
+        </mesh>
+
+        {/* cowl + head */}
+        <group ref={headRef} position={[0, 1.42, 0]}>
+          <mesh material={armorDark}>
+            <sphereGeometry args={[0.33, 32, 24]} />
+          </mesh>
+          <mesh material={armor} position={[0, -0.22, 0.06]}>
+            <boxGeometry args={[0.3, 0.24, 0.34]} />
+          </mesh>
+          <mesh material={armor} position={[-0.13, 0.36, -0.04]} rotation={[0, 0, -0.32]}>
+            <coneGeometry args={[0.09, 0.42, 14]} />
+          </mesh>
+          <mesh material={armor} position={[0.13, 0.36, -0.04]} rotation={[0, 0, 0.32]}>
+            <coneGeometry args={[0.09, 0.42, 14]} />
+          </mesh>
+          <mesh material={eyeMat} position={[-0.1, 0.04, 0.29]}>
+            <boxGeometry args={[0.1, 0.045, 0.02]} />
+          </mesh>
+          <mesh material={eyeMat} position={[0.1, 0.04, 0.29]}>
+            <boxGeometry args={[0.1, 0.045, 0.02]} />
+          </mesh>
+        </group>
+
+        {/* cape */}
+        <group ref={capeRef} position={[0, 0.95, -0.5]} rotation={[0.06, 0, 0]}>
+          <mesh ref={capeMeshRef} geometry={capeGeo} material={capeMat} castShadow />
+        </group>
       </group>
     </group>
   );
@@ -163,7 +308,7 @@ function ParticleGalaxy() {
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(2 * Math.random() - 1);
       const theta = Math.random() * Math.PI * 2;
-      const r = 2.4 + Math.sin(i * 0.31) * 0.7 + Math.random() * 0.5;
+      const r = 3.2 + Math.sin(i * 0.31) * 0.7 + Math.random() * 0.5;
       const x = r * Math.sin(phi) * Math.cos(theta);
       const y = r * Math.cos(phi) * 0.75;
       const z = r * Math.sin(phi) * Math.sin(theta);
@@ -347,7 +492,7 @@ function GothamRain() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bat-signal beam cone                                                 */
+/* Bat-signal: beam cast down from the sky onto the figure              */
 /* ------------------------------------------------------------------ */
 function BatSignalBeam() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -357,13 +502,13 @@ function BatSignalBeam() {
     const t = clock.elapsedTime;
     meshRef.current.rotation.z = Math.sin(t * 0.2) * 0.16;
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = 0.06 + Math.sin(t * 0.8) * 0.018;
+    mat.opacity = 0.07 + Math.sin(t * 0.8) * 0.02;
   });
 
   return (
-    <mesh ref={meshRef} position={[0, -0.6, -3]} rotation={[0, 0, 0]}>
+    <mesh ref={meshRef} position={[0, 3.2, -3]} rotation={[Math.PI, 0, 0]}>
       <coneGeometry args={[4.2, 10, 32, 1, true]} />
-      <meshBasicMaterial color="#ffd84d" transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
+      <meshBasicMaterial color="#ffd84d" transparent opacity={0.07} side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
 }

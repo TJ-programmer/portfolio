@@ -18,7 +18,7 @@ export default function NeuralScene() {
       <Canvas
         camera={{ position: [0, 0, 8], fov: 54 }}
         dpr={[1, 1.6]}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.35 }}
       >
         <color attach="background" args={["#04050a"]} />
         <fog attach="fog" args={["#04050a", 9, 26]} />
@@ -150,8 +150,25 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
     return {
       scale: s,
       offset: [0, 0.6 - center.y * s, -center.z * s] as const,
+      poolY: 0.6 - center.y * s - size.y * s * 0.48,
     };
   }, [model]);
+
+  const poolTex = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const ctx = c.getContext("2d");
+    if (!ctx) return null;
+    const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    g.addColorStop(0, "rgba(255, 214, 77, 0.5)");
+    g.addColorStop(0.45, "rgba(255, 190, 60, 0.16)");
+    g.addColorStop(1, "rgba(255, 180, 50, 0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -183,8 +200,23 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
 
   return (
     <group ref={outer}>
-      <directionalLight position={[3, 5, 5]} intensity={2.2} color="#e8edff" />
-      <directionalLight position={[-4, 2, 3]} intensity={0.9} color="#ffd84d" />
+      <directionalLight position={[4, 6, 4]} intensity={3.6} color="#ffffff" />
+      <directionalLight position={[-5, 2, 3]} intensity={1.8} color="#ffd84d" />
+      <directionalLight position={[0, 3, -6]} intensity={1.4} color="#2f6bff" />
+      <pointLight position={[0, 5.5, 1.5]} intensity={70} color="#ffe9b0" />
+      <pointLight position={[0, -0.5, 3]} intensity={18} color="#ffd84d" />
+      {poolTex && (
+        <mesh position={[0, fitted.poolY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[6.2, 6.2]} />
+          <meshBasicMaterial
+            map={poolTex}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            opacity={0.9}
+          />
+        </mesh>
+      )}
       <group ref={idle} position={fitted.offset} scale={fitted.scale}>
         <primitive object={model} />
       </group>

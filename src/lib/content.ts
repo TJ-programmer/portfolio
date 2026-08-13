@@ -153,17 +153,6 @@ export const projects: Project[] = [
     featured: false,
     language: "Jupyter",
   },
-  {
-    title: "FF Tournament Tracker",
-    tagline: "Live esports standings + admin panel",
-    description:
-      "A live tournament scoreboard with auto-refreshing standings, player kill leaderboards, fixtures, and a PIN-protected admin panel that exports JSON for publishing.",
-    stack: ["HTML", "CSS", "JavaScript", "JSON"],
-    links: [{ label: "View mission", href: "https://github.com/TJ-programmer/ff-tournament" }],
-    status: "Shipped",
-    featured: false,
-    language: "HTML",
-  },
 ];
 
 export const achievements = [

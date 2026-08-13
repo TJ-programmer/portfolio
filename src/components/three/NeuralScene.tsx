@@ -76,16 +76,16 @@ function batShape(): THREE.Shape {
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
-/* Photo stage: load public/images/batman-1..6.jpg and cut them into a  */
-/* scroll-driven sequence; fall back to the procedural figure.          */
+/* Photo stage: load public/images/batman1..6.jpg (or batman-1..6.jpg) */
+/* and cut them into a scroll-driven sequence; fall back to the figure. */
 /* ------------------------------------------------------------------ */
-const PHOTO_PATHS = [
-  "/images/batman-1.jpg",
-  "/images/batman-2.jpg",
-  "/images/batman-3.jpg",
-  "/images/batman-4.jpg",
-  "/images/batman-5.jpg",
-  "/images/batman-6.jpg",
+const PHOTO_PATHS: [string, string][] = [
+  ["/images/batman-1.jpg", "/images/batman1.jpg"],
+  ["/images/batman-2.jpg", "/images/batman2.jpg"],
+  ["/images/batman-3.jpg", "/images/batman3.jpg"],
+  ["/images/batman-4.jpg", "/images/batman4.jpg"],
+  ["/images/batman-5.jpg", "/images/batman5.jpg"],
+  ["/images/batman-6.jpg", "/images/batman6.jpg"],
 ];
 
 const PHOTO_SLOTS = [
@@ -106,29 +106,31 @@ function FigureStage() {
     const results: (THREE.Texture | null)[] = [];
     let pending = PHOTO_PATHS.length;
 
-    PHOTO_PATHS.forEach((p, i) => {
-      loader.load(
-        p,
-        (t) => {
-          if (!alive) {
-            t.dispose();
-            return;
-          }
-          t.colorSpace = THREE.SRGBColorSpace;
-          t.anisotropy = 8;
-          results[i] = t;
-          if (--pending === 0) {
-            setTextures(results.filter(Boolean) as THREE.Texture[]);
-          }
-        },
-        undefined,
-        () => {
-          results[i] = null;
-          if (--pending === 0) {
-            setTextures(results.filter(Boolean) as THREE.Texture[]);
-          }
+    PHOTO_PATHS.forEach(([a, b], i) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (--pending === 0 && alive) {
+          setTextures(results.filter(Boolean) as THREE.Texture[]);
         }
-      );
+      };
+      const onLoad = (t: THREE.Texture) => {
+        if (!alive) {
+          t.dispose();
+          finish();
+          return;
+        }
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+        results[i] = t;
+        finish();
+      };
+      loader.load(a, onLoad, undefined, () => {
+        loader.load(b, onLoad, undefined, () => {
+          finish();
+        });
+      });
     });
 
     return () => {

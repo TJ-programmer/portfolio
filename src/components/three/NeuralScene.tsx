@@ -8,6 +8,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,7 +30,7 @@ export default function NeuralScene() {
         <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={26} />
         <CameraRig />
         <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />
-        <FigureStage />
+        <SceneSubject />
         <ParticleGalaxy />
         <PipelineRings />
         <GothamRain />
@@ -96,6 +97,100 @@ const PHOTO_SLOTS = [
   { id: 4, pos: [0.6, 0.0, -0.2] as const, dir: -1, rotY: 0.06, scale: 1.02 },
   { id: 5, pos: [-0.6, 0.15, 0] as const, dir: 1, rotY: -0.07, scale: 1.05 },
 ];
+
+const MODEL_PATH = "/models/batman.glb";
+
+/* ------------------------------------------------------------------ */
+/* 3D model stage: if public/models/batman.glb exists it takes over,   */
+/* rotating its view as you scroll. Otherwise we fall back to photos.  */
+/* ------------------------------------------------------------------ */
+function useModel(path: string) {
+  const [status, setStatus] = useState<"pending" | "ok" | "error">("pending");
+  const [scene, setScene] = useState<THREE.Object3D | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const loader = new GLTFLoader();
+    loader.load(
+      path,
+      (gltf) => {
+        if (!alive) return;
+        setScene(gltf.scene);
+        setStatus("ok");
+      },
+      undefined,
+      () => {
+        if (alive) setStatus("error");
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+
+  return { status, scene };
+}
+
+function SceneSubject() {
+  const { status, scene } = useModel(MODEL_PATH);
+  if (status === "pending") return null;
+  if (status === "ok" && scene) return <BatmanModel model={scene} />;
+  return <FigureStage />;
+}
+
+function BatmanModel({ model }: { model: THREE.Object3D }) {
+  const outer = useRef<THREE.Group>(null);
+  const idle = useRef<THREE.Group>(null);
+
+  const fitted = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const s = 3.7 / Math.max(size.y, 0.001);
+    return {
+      scale: s,
+      offset: [0, 0.6 - center.y * s, -center.z * s] as const,
+    };
+  }, [model]);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const tl = gsap.timeline({ defaults: { ease: "none" } });
+    tl.fromTo(
+      outer.current!.rotation,
+      { y: 0.35, x: -0.1 },
+      {
+        y: 0.35 + Math.PI * 1.72,
+        x: 0.3,
+        duration: 1,
+        scrollTrigger: { trigger: "main", start: "top top", end: "bottom bottom", scrub: 1.2 },
+      },
+      0,
+    );
+    return () => {
+      tl.scrollTrigger?.kill();
+      tl.kill();
+    };
+  }, []);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (idle.current) {
+      idle.current.rotation.y = Math.sin(t * 0.25) * 0.1;
+      idle.current.position.y = Math.sin(t * 0.7) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={outer}>
+      <directionalLight position={[3, 5, 5]} intensity={2.2} color="#e8edff" />
+      <directionalLight position={[-4, 2, 3]} intensity={0.9} color="#ffd84d" />
+      <group ref={idle} position={fitted.offset} scale={fitted.scale}>
+        <primitive object={model} />
+      </group>
+    </group>
+  );
+}
 
 function FigureStage() {
   const [textures, setTextures] = useState<THREE.Texture[]>([]);

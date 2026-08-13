@@ -30,7 +30,7 @@ body {
     radial-gradient(circle at 50% 6%, rgba(255, 216, 77, 0.16), transparent 26rem),
     radial-gradient(circle at 80% 24%, rgba(83, 96, 111, 0.16), transparent 30rem),
     radial-gradient(circle at 12% 78%, rgba(255, 216, 77, 0.05), transparent 24rem),
-    linear-gradient(180deg, rgba(10, 13, 18, 0.4), rgba(4, 5, 10, 0.96) 48%),
+    linear-gradient(180deg, rgba(10, 13, 18, 0.18), rgba(4, 5, 10, 0.6) 100%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -706,7 +706,7 @@ h1 {
   border: 1px solid var(--line);
   background:
     linear-gradient(135deg, rgba(255, 216, 77, 0.05), transparent 42%),
-    rgba(7, 9, 13, 0.78);
+    rgba(7, 9, 13, 0.62);
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);

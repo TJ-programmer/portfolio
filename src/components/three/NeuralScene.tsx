@@ -89,12 +89,12 @@ const PHOTO_PATHS: [string, string][] = [
 ];
 
 const PHOTO_SLOTS = [
-  { id: 0, pos: [0.75, 0.1, 0] as const, dir: -1, rotY: 0.06, scale: 1.0 },
-  { id: 1, pos: [-0.9, 0.0, -0.6] as const, dir: 1, rotY: -0.08, scale: 0.95 },
-  { id: 2, pos: [0.85, -0.2, -1.0] as const, dir: -1, rotY: 0.1, scale: 0.9 },
-  { id: 3, pos: [-0.85, 0.1, -0.8] as const, dir: 1, rotY: -0.06, scale: 0.95 },
-  { id: 4, pos: [0.8, 0.0, -0.4] as const, dir: -1, rotY: 0.08, scale: 1.0 },
-  { id: 5, pos: [-0.8, 0.2, 0] as const, dir: 1, rotY: -0.1, scale: 1.0 },
+  { id: 0, pos: [0.62, 0.05, 0.2] as const, dir: -1, rotY: 0.05, scale: 1.04 },
+  { id: 1, pos: [-0.66, 0.0, -0.2] as const, dir: 1, rotY: -0.06, scale: 1.02 },
+  { id: 2, pos: [0.64, -0.1, -0.4] as const, dir: -1, rotY: 0.07, scale: 1.0 },
+  { id: 3, pos: [-0.62, 0.05, -0.2] as const, dir: 1, rotY: -0.05, scale: 1.03 },
+  { id: 4, pos: [0.6, 0.0, -0.2] as const, dir: -1, rotY: 0.06, scale: 1.02 },
+  { id: 5, pos: [-0.6, 0.15, 0] as const, dir: 1, rotY: -0.07, scale: 1.05 },
 ];
 
 function FigureStage() {
@@ -196,7 +196,7 @@ function PhotoSequence({ textures }: { textures: THREE.Texture[] }) {
         gsap.set(out.rotation, { y: slot.rotY });
         gsap.set(out.scale, { x: slot.scale, y: slot.scale, z: slot.scale });
         opU.value = 1;
-        halo.opacity = 0.3;
+        halo.opacity = 0.4;
         continue;
       }
 
@@ -208,7 +208,7 @@ function PhotoSequence({ textures }: { textures: THREE.Texture[] }) {
           start + 0.01
         )
         .to(opU, { value: 1, duration: 0.12 }, start + 0.01)
-        .to(halo, { opacity: 0.32, duration: 0.12 }, start + 0.01)
+        .to(halo, { opacity: 0.42, duration: 0.12 }, start + 0.01)
         .to(
           out.position,
           { x: bx + dir * 2.4, y: by - 0.5, z: bz + 0.8, duration: 0.14, ease: "power2.in" },
@@ -265,11 +265,11 @@ function BatmanImage({
   const size = useMemo<[number, number]>(() => {
     const img = tex.image as { width?: number; height?: number } | undefined;
     if (img && img.width && img.height) {
-      const H = 5.6;
-      const W = Math.min((img.width / img.height) * H, 4.4);
+      const H = 6.4;
+      const W = Math.min((img.width / img.height) * H, 4.9);
       return [W, H];
     }
-    return [3.6, 5.6];
+    return [4.0, 6.4];
   }, [tex]);
 
   const haloTex = useMemo(() => {
@@ -309,8 +309,8 @@ function BatmanImage({
           varying vec2 vUv;
           void main() {
             vec2 uv = vUv + vec2(
-              sin(vUv.y * 8.0 + uTime * 1.3) * 0.002,
-              cos(vUv.x * 8.0 + uTime * 1.3) * 0.002
+              sin(vUv.y * 8.0 + uTime * 1.3) * 0.0012,
+              cos(vUv.x * 8.0 + uTime * 1.3) * 0.0012
             );
             vec4 col = texture2D(uTexture, uv);
 
@@ -319,16 +319,16 @@ function BatmanImage({
             float edge = 1.0 - min(edgeX, edgeY);
             edge = smoothstep(0.3, 0.85, edge);
 
-            float flicker = 0.72 + 0.28 * sin(uTime * 6.0) * sin(uTime * 2.3);
+            float flicker = 0.82 + 0.18 * sin(uTime * 6.0) * sin(uTime * 2.3);
 
-            vec3 glow = vec3(1.0, 0.847, 0.302) * edge * 0.55 * flicker;
-            vec3 rgb = col.rgb * 1.06 + glow;
-            rgb += vec3(0.85, 0.9, 1.0) * 0.16 * smoothstep(0.0, 0.4, 1.0 - vUv.y) * flicker;
+            vec3 glow = vec3(1.0, 0.847, 0.302) * edge * 0.22 * flicker;
+            vec3 rgb = col.rgb * 1.28 + glow;
+            rgb += vec3(0.85, 0.9, 1.0) * 0.12 * smoothstep(0.0, 0.4, 1.0 - vUv.y) * flicker;
 
-            float vg = smoothstep(0.85, 0.35, length(vUv - 0.5) * 1.4);
-            rgb *= 0.72 + 0.28 * vg;
+            float vg = smoothstep(0.85, 0.4, length(vUv - 0.5) * 1.4);
+            rgb *= 0.86 + 0.14 * vg;
 
-            rgb = 1.0 - exp(-rgb * 1.15);
+            rgb = 1.0 - exp(-rgb * 1.35);
             rgb = pow(rgb, vec3(1.0 / 2.2));
 
             float alpha = edgeX * edgeY * 0.98 * uOpacity;

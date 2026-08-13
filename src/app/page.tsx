@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { AnimatePresence, motion, useInView } from "framer-motion";
 import {
   achievements,
   contact,
@@ -28,11 +28,14 @@ import {
   HackerrankIcon,
   LinkedinIcon,
   MailIcon,
+  MoonIcon,
   NeuralIcon,
   ServerIcon,
+  SunIcon,
   VolumeIcon,
 } from "@/components/icons";
 import { disableAmbientSound, enableAmbientSound } from "@/lib/audio";
+import type { SceneTheme } from "@/components/three/NeuralScene";
 
 const NeuralScene = dynamic(() => import("@/components/three/NeuralScene"), {
   ssr: false,
@@ -54,8 +57,27 @@ const navLinks = [
   { id: "contact", label: "signal" },
 ];
 
+function getInitialTheme(): SceneTheme {
+  if (typeof window === "undefined") return "night";
+  try {
+    return localStorage.getItem("portfolio-theme") === "day" ? "day" : "night";
+  } catch {
+    return "night";
+  }
+}
+
 export default function Home() {
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [theme, setTheme] = useState<SceneTheme>(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("portfolio-theme", theme);
+    } catch {
+      // ignore storage errors
+    }
+  }, [theme]);
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -64,15 +86,24 @@ export default function Home() {
     else disableAmbientSound();
   };
 
+  const toggleTheme = () => {
+    setTheme((t) => (t === "night" ? "day" : "night"));
+  };
+
   return (
     <main>
       <Loader />
       <ScrollProgress />
       <a className="skip-link" href="#projects">Skip to missions</a>
-      <NeuralScene />
+      <NeuralScene theme={theme} />
       <RainOverlay />
       <CardTilt />
-      <Navigation soundEnabled={soundEnabled} onSoundToggle={toggleSound} />
+      <Navigation
+        soundEnabled={soundEnabled}
+        onSoundToggle={toggleSound}
+        theme={theme}
+        onThemeToggle={toggleTheme}
+      />
       <Hero />
       <TechMarquee />
       <About />
@@ -115,12 +146,50 @@ function RainOverlay() {
 }
 
 /* ---------- navigation ---------- */
+function ThemeToggle({
+  theme,
+  onToggle,
+}: {
+  theme: SceneTheme;
+  onToggle: () => void;
+}) {
+  const isDay = theme === "day";
+  return (
+    <button
+      className={`theme-toggle ${isDay ? "theme-toggle--day" : ""}`}
+      type="button"
+      aria-label={isDay ? "Switch to night mode" : "Switch to day mode"}
+      onClick={onToggle}
+    >
+      <span className="theme-toggle-icon" aria-hidden="true">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={theme}
+            className="theme-toggle-glyph"
+            initial={{ rotateZ: -120, opacity: 0, scale: 0.4 }}
+            animate={{ rotateZ: 0, opacity: 1, scale: 1 }}
+            exit={{ rotateZ: 120, opacity: 0, scale: 0.4 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+          >
+            {isDay ? <SunIcon size={15} /> : <MoonIcon size={15} />}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+      <span>{isDay ? "DAY" : "NIGHT"}</span>
+    </button>
+  );
+}
+
 function Navigation({
   soundEnabled,
   onSoundToggle,
+  theme,
+  onThemeToggle,
 }: {
   soundEnabled: boolean;
   onSoundToggle: () => void;
+  theme: SceneTheme;
+  onThemeToggle: () => void;
 }) {
   return (
     <header className="site-nav">
@@ -134,15 +203,18 @@ function Navigation({
           </a>
         ))}
       </nav>
-      <button
-        className="icon-button"
-        type="button"
-        aria-label={soundEnabled ? "Mute ambient sound" : "Enable ambient sound"}
-        onClick={onSoundToggle}
-      >
-        <VolumeIcon size={15} muted={!soundEnabled} />
-        <span>{soundEnabled ? "ON" : "OFF"}</span>
-      </button>
+      <div className="nav-actions">
+        <ThemeToggle theme={theme} onToggle={onThemeToggle} />
+        <button
+          className="icon-button"
+          type="button"
+          aria-label={soundEnabled ? "Mute ambient sound" : "Enable ambient sound"}
+          onClick={onSoundToggle}
+        >
+          <VolumeIcon size={15} muted={!soundEnabled} />
+          <span>{soundEnabled ? "ON" : "OFF"}</span>
+        </button>
+      </div>
     </header>
   );
 }

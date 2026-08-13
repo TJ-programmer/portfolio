@@ -154,11 +154,13 @@ function ThemeToggle({
   onToggle: () => void;
 }) {
   const isDay = theme === "day";
+  const next = isDay ? "night" : "day";
+  const label = isDay ? "DARK" : "LIGHT";
   return (
     <button
       className={`theme-toggle ${isDay ? "theme-toggle--day" : ""}`}
       type="button"
-      aria-label={isDay ? "Switch to night mode" : "Switch to day mode"}
+      aria-label={`Switch to ${next} mode`}
       onClick={onToggle}
     >
       <span className="theme-toggle-icon" aria-hidden="true">
@@ -171,11 +173,11 @@ function ThemeToggle({
             exit={{ rotateZ: 120, opacity: 0, scale: 0.4 }}
             transition={{ duration: 0.35, ease: "easeInOut" }}
           >
-            {isDay ? <SunIcon size={15} /> : <MoonIcon size={15} />}
+            {isDay ? <MoonIcon size={15} /> : <SunIcon size={15} />}
           </motion.span>
         </AnimatePresence>
       </span>
-      <span>{isDay ? "DAY" : "NIGHT"}</span>
+      <span>{label}</span>
     </button>
   );
 }

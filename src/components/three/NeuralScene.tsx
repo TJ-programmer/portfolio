@@ -106,29 +106,66 @@ export default function NeuralScene({ theme = "night" }: { theme?: SceneTheme })
 }
 
 /* ------------------------------------------------------------------ */
-/* Bat logo silhouette (reused for the 3D emblem)                       */
+/* Bat logo silhouette (3D emblem) — classic symbol: pointed ears,      */
+/* rounded head, notched wings sweeping wide, tapered tail.             */
+/* Right half authored once, mirrored for perfect symmetry.             */
 /* ------------------------------------------------------------------ */
 function batShape(): THREE.Shape {
-  const pts: [number, number][] = [
-    [0, 18],
-    [14, 8],
-    [27, 20],
-    [37, 4],
-    [50, 16],
-    [63, 4],
-    [73, 20],
-    [86, 8],
-    [100, 18],
-    [82, 28],
-    [62, 24],
-    [50, 38],
-    [38, 24],
-    [18, 28],
+  const right: [number, number][] = [
+    [55, 6],
+    [59, 12],
+    [61, 18],
+    [62, 23],
+    [61, 27],
+    [63, 30],
+    [62, 34],
+    [61, 40],
+    [63, 47],
+    [66, 50],
+    [62, 45],
+    [57, 41],
+    [52, 38],
+    [46, 36],
+    [40, 34],
+    [33, 33],
+    [26, 34],
+    [19, 36],
+    [13, 39],
+    [8, 43],
+    [4, 47],
+    [0, 50],
+    [6, 45],
+    [12, 41],
+    [17, 39],
+    [23, 37],
+    [30, 36],
+    [36, 38],
+    [40, 34],
+    [42, 28],
+    [41, 22],
+    [37, 18],
+    [32, 17],
+    [27, 19],
+    [25, 23],
+    [27, 27],
+    [31, 28],
+    [37, 27],
+    [43, 25],
+    [47, 21],
+    [49, 14],
   ];
+
+  const pts: [number, number][] = [[50, 0]];
+  right.forEach((p) => pts.push(p));
+  for (let i = right.length - 1; i >= 0; i--) {
+    pts.push([100 - right[i][0], right[i][1]]);
+  }
+  pts.push([50, 0]);
+
   const shape = new THREE.Shape();
   pts.forEach(([x, y], i) => {
-    const px = (x / 100) * 5 - 2.5;
-    const py = (y / 44) * 2.2 - 1.1;
+    const px = (x / 100) * 5.4 - 2.7;
+    const py = (y / 50) * 2.5 - 1.25;
     if (i === 0) shape.moveTo(px, py);
     else shape.lineTo(px, py);
   });
@@ -227,7 +264,7 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
   return (
     <group ref={outer} position={[0, 0.1, 0]}>
       <group ref={inner} position={[0, 0.35, 0]}>
-        <sprite scale={[7.6, 3.8, 1]} position={[0, 0, -0.55]}>
+        <sprite scale={[8.4, 4, 1]} position={[0, 0, -0.55]}>
           <spriteMaterial
             ref={glowMat}
             map={glowTex}

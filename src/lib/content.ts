@@ -201,10 +201,22 @@ export const internships = [
     points: [
       "Built and improved workflow automation features on the ServiceNow platform.",
       "Used JavaScript / GlideScript to extend platform modules and integrate REST APIs.",
+      "Hands-on with ServiceNow AI capabilities — Now Assist, AI Search, AI UX, AICT (Agentic AI Control Tower), OTTO AI, and more.",
       "Collaborated in an Agile team with daily standups and sprint reviews.",
       "Gained hands-on exposure to enterprise AI/automation tooling and large-scale SaaS development.",
     ],
-    stack: ["ServiceNow Platform", "JavaScript", "GlideScript", "REST APIs", "Agile"],
+    stack: [
+      "ServiceNow Platform",
+      "JavaScript",
+      "GlideScript",
+      "REST APIs",
+      "Agile",
+      "Now Assist",
+      "AI Search",
+      "AI UX",
+      "AICT",
+      "OTTO AI",
+    ],
   },
   {
     company: "Inters Tech",

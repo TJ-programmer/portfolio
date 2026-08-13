@@ -6,7 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -76,47 +76,189 @@ function batShape(): THREE.Shape {
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
-/* Photo stage: load public/images/batman.jpg and render it as a        */
-/* cinematic 2.5D billboard; fall back to the procedural figure.        */
+/* Photo stage: load public/images/batman-1..6.jpg and cut them into a  */
+/* scroll-driven sequence; fall back to the procedural figure.          */
 /* ------------------------------------------------------------------ */
-const BATMAN_PHOTO = "/images/batman.jpg";
+const PHOTO_PATHS = [
+  "/images/batman-1.jpg",
+  "/images/batman-2.jpg",
+  "/images/batman-3.jpg",
+  "/images/batman-4.jpg",
+  "/images/batman-5.jpg",
+  "/images/batman-6.jpg",
+];
+
+const PHOTO_SLOTS = [
+  { id: 0, pos: [0.75, 0.1, 0] as const, dir: -1, rotY: 0.06, scale: 1.0 },
+  { id: 1, pos: [-0.9, 0.0, -0.6] as const, dir: 1, rotY: -0.08, scale: 0.95 },
+  { id: 2, pos: [0.85, -0.2, -1.0] as const, dir: -1, rotY: 0.1, scale: 0.9 },
+  { id: 3, pos: [-0.85, 0.1, -0.8] as const, dir: 1, rotY: -0.06, scale: 0.95 },
+  { id: 4, pos: [0.8, 0.0, -0.4] as const, dir: -1, rotY: 0.08, scale: 1.0 },
+  { id: 5, pos: [-0.8, 0.2, 0] as const, dir: 1, rotY: -0.1, scale: 1.0 },
+];
 
 function FigureStage() {
-  const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [textures, setTextures] = useState<THREE.Texture[]>([]);
 
   useEffect(() => {
     let alive = true;
     const loader = new THREE.TextureLoader();
-    loader.load(
-      BATMAN_PHOTO,
-      (t) => {
-        if (!alive) {
-          t.dispose();
-          return;
+    const results: (THREE.Texture | null)[] = [];
+    let pending = PHOTO_PATHS.length;
+
+    PHOTO_PATHS.forEach((p, i) => {
+      loader.load(
+        p,
+        (t) => {
+          if (!alive) {
+            t.dispose();
+            return;
+          }
+          t.colorSpace = THREE.SRGBColorSpace;
+          t.anisotropy = 8;
+          results[i] = t;
+          if (--pending === 0) {
+            setTextures(results.filter(Boolean) as THREE.Texture[]);
+          }
+        },
+        undefined,
+        () => {
+          results[i] = null;
+          if (--pending === 0) {
+            setTextures(results.filter(Boolean) as THREE.Texture[]);
+          }
         }
-        t.colorSpace = THREE.SRGBColorSpace;
-        t.anisotropy = 8;
-        setTex(t);
-      },
-      undefined,
-      () => {
-        if (alive) setFailed(true);
-      }
-    );
+      );
+    });
+
     return () => {
       alive = false;
     };
   }, []);
 
-  if (failed) return <BatmanFigure />;
-  if (!tex) return null;
-  return <BatmanImage tex={tex} />;
+  if (textures.length === 0) return <BatmanFigure />;
+  return <PhotoSequence textures={textures} />;
 }
 
-function BatmanImage({ tex }: { tex: THREE.Texture }) {
+function PhotoSequence({ textures }: { textures: THREE.Texture[] }) {
+  const outerRefs = useRef<(THREE.Group | null)[]>([]);
+  const opacityUniforms = useRef<({ value: number } | null)[]>([]);
+  const haloMats = useRef<(THREE.SpriteMaterial | null)[]>([]);
+
+  const onOuter = useCallback((i: number, el: THREE.Group | null) => {
+    outerRefs.current[i] = el;
+  }, []);
+  const onOpacity = useCallback((i: number, u: { value: number } | null) => {
+    opacityUniforms.current[i] = u;
+  }, []);
+  const onHalo = useCallback((i: number, m: THREE.SpriteMaterial | null) => {
+    haloMats.current[i] = m;
+  }, []);
+
+  useEffect(() => {
+    const n = textures.length;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const win = 1 / n;
+
+    const tl = gsap.timeline({
+      defaults: { ease: "power2.inOut" },
+      scrollTrigger: reduceMotion
+        ? undefined
+        : {
+            trigger: "main",
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 1.2,
+          },
+    });
+
+    for (let i = 0; i < n; i++) {
+      const out = outerRefs.current[i];
+      const opU = opacityUniforms.current[i];
+      const halo = haloMats.current[i];
+      const slot = PHOTO_SLOTS[i % PHOTO_SLOTS.length];
+      if (!out || !opU || !halo) continue;
+
+      const [bx, by, bz] = slot.pos;
+      const dir = slot.dir;
+      const start = i * win;
+
+      gsap.set(out.position, { x: bx - dir * 2.6, y: by + 1.8, z: bz - 1.0 });
+      gsap.set(out.rotation, { y: dir * 0.5 });
+      gsap.set(out.scale, { x: 0.86, y: 0.86, z: 0.86 });
+      opU.value = 0;
+      halo.opacity = 0;
+
+      if (reduceMotion) {
+        gsap.set(out.position, { x: bx, y: by, z: bz });
+        gsap.set(out.rotation, { y: slot.rotY });
+        gsap.set(out.scale, { x: slot.scale, y: slot.scale, z: slot.scale });
+        opU.value = 1;
+        halo.opacity = 0.3;
+        continue;
+      }
+
+      tl.to(out.position, { x: bx, y: by, z: bz, duration: 0.14, ease: "power2.out" }, start + 0.01)
+        .to(out.rotation, { y: slot.rotY, duration: 0.14, ease: "power2.out" }, start + 0.01)
+        .to(
+          out.scale,
+          { x: slot.scale, y: slot.scale, z: slot.scale, duration: 0.14, ease: "power2.out" },
+          start + 0.01
+        )
+        .to(opU, { value: 1, duration: 0.12 }, start + 0.01)
+        .to(halo, { opacity: 0.32, duration: 0.12 }, start + 0.01)
+        .to(
+          out.position,
+          { x: bx + dir * 2.4, y: by - 0.5, z: bz + 0.8, duration: 0.14, ease: "power2.in" },
+          start + win - 0.15
+        )
+        .to(out.rotation, { y: -dir * 0.42, duration: 0.14 }, start + win - 0.15)
+        .to(
+          out.scale,
+          { x: 1.06, y: 1.06, z: 1.06, duration: 0.14 },
+          start + win - 0.15
+        )
+        .to(opU, { value: 0, duration: 0.12 }, start + win - 0.13)
+        .to(halo, { opacity: 0, duration: 0.12 }, start + win - 0.13);
+    }
+
+    return () => {
+      tl.scrollTrigger?.kill();
+      tl.kill();
+    };
+  }, [textures.length]);
+
+  return (
+    <>
+      {textures.map((tex, i) => (
+        <BatmanImage
+          key={i}
+          tex={tex}
+          slot={PHOTO_SLOTS[i % PHOTO_SLOTS.length]}
+          onOuter={onOuter}
+          onOpacity={onOpacity}
+          onHalo={onHalo}
+        />
+      ))}
+    </>
+  );
+}
+
+function BatmanImage({
+  tex,
+  slot,
+  onOuter,
+  onOpacity,
+  onHalo,
+}: {
+  tex: THREE.Texture;
+  slot: (typeof PHOTO_SLOTS)[number];
+  onOuter: (i: number, el: THREE.Group | null) => void;
+  onOpacity: (i: number, u: { value: number } | null) => void;
+  onHalo: (i: number, m: THREE.SpriteMaterial | null) => void;
+}) {
+  const innerRef = useRef<THREE.Group>(null);
   const planeRef = useRef<THREE.Mesh>(null);
-  const haloRef = useRef<THREE.Sprite>(null);
 
   const size = useMemo<[number, number]>(() => {
     const img = tex.image as { width?: number; height?: number } | undefined;
@@ -149,6 +291,7 @@ function BatmanImage({ tex }: { tex: THREE.Texture }) {
         uniforms: {
           uTexture: { value: tex },
           uTime: { value: 0 },
+          uOpacity: { value: 0 },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -160,6 +303,7 @@ function BatmanImage({ tex }: { tex: THREE.Texture }) {
         fragmentShader: `
           uniform sampler2D uTexture;
           uniform float uTime;
+          uniform float uOpacity;
           varying vec2 vUv;
           void main() {
             vec2 uv = vUv + vec2(
@@ -185,7 +329,7 @@ function BatmanImage({ tex }: { tex: THREE.Texture }) {
             rgb = 1.0 - exp(-rgb * 1.15);
             rgb = pow(rgb, vec3(1.0 / 2.2));
 
-            float alpha = edgeX * edgeY * 0.98;
+            float alpha = edgeX * edgeY * 0.98 * uOpacity;
             gl_FragColor = vec4(rgb, alpha);
           }
         `,
@@ -195,38 +339,40 @@ function BatmanImage({ tex }: { tex: THREE.Texture }) {
 
   useFrame(({ clock, pointer }) => {
     const t = clock.elapsedTime;
-    if (planeRef.current) {
-      planeRef.current.position.x = 0.75 + pointer.x * 0.45;
-      planeRef.current.position.y = 0.1 + pointer.y * 0.2 + Math.sin(t * 0.8) * 0.05;
-      planeRef.current.rotation.y = pointer.x * 0.12;
-      planeRef.current.rotation.x = -pointer.y * 0.06;
-      const s = 1 + Math.sin(t * 1.2) * 0.006;
-      planeRef.current.scale.setScalar(s);
+    if (innerRef.current) {
+      innerRef.current.position.y = Math.sin(t * 0.8 + slot.id * 2.0) * 0.05;
+      innerRef.current.rotation.y = pointer.x * 0.25;
+      innerRef.current.rotation.x = -pointer.y * 0.05;
+      const s = 1 + Math.sin(t * 1.2 + slot.id * 2.0) * 0.006;
+      innerRef.current.scale.setScalar(s);
     }
-    if (haloRef.current) {
-      const hm = haloRef.current.material as THREE.SpriteMaterial;
-      hm.opacity = 0.34 + Math.sin(t * 1.5) * 0.08;
-    }
-    const mat = planeRef.current?.material as THREE.ShaderMaterial | undefined;
-    if (mat) {
-      mat.uniforms.uTime.value = t;
+    const m = planeRef.current?.material as THREE.ShaderMaterial | undefined;
+    if (m) {
+      m.uniforms.uTime.value = t;
     }
   });
 
+  useEffect(() => {
+    onOpacity(slot.id, mat.uniforms.uOpacity);
+  }, [mat, onOpacity, slot.id]);
+
   return (
-    <group>
-      <sprite ref={haloRef} position={[0.75, 0.1, -0.9]} scale={[size[0] + 1.6, size[1] + 1.2, 1]}>
+    <group ref={(el) => onOuter(slot.id, el)} position={[slot.pos[0], slot.pos[1], slot.pos[2]]}>
+      <sprite position={[0, 0, -0.9]} scale={[size[0] + 1.6, size[1] + 1.2, 1]}>
         <spriteMaterial
+          ref={(m) => onHalo(slot.id, m)}
           map={haloTex}
           transparent
-          opacity={0.34}
+          opacity={0}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </sprite>
-      <mesh ref={planeRef} material={mat} position={[0.75, 0.1, 0]}>
-        <planeGeometry args={[size[0], size[1]]} />
-      </mesh>
+      <group ref={innerRef}>
+        <mesh ref={planeRef} material={mat}>
+          <planeGeometry args={[size[0], size[1]]} />
+        </mesh>
+      </group>
     </group>
   );
 }

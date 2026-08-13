@@ -13,6 +13,8 @@ import { batLogoShapes } from "./batmanLogo";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const IS_COMPACT = typeof window !== "undefined" && window.innerWidth < 720;
+
 export type SceneTheme = "night" | "day";
 
 const SCENE = {
@@ -81,7 +83,7 @@ export default function NeuralScene({ theme = "night" }: { theme?: SceneTheme })
     <div className="scene-shell" aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 8], fov: 54 }}
-        dpr={[1, 1.6]}
+        dpr={[1, IS_COMPACT ? 1.3 : 1.6]}
         gl={{ antialias: true, alpha: true, toneMappingExposure: 1.12 }}
       >
         <color attach="background" args={[c.bg]} />
@@ -93,7 +95,9 @@ export default function NeuralScene({ theme = "night" }: { theme?: SceneTheme })
         <pointLight position={[0, 2.5, -6]} color="#9fb3d1" intensity={c.pointBack} />
         <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={c.pointRim} />
         <CameraRig />
-        {isDay ? null : <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />}
+        {isDay ? null : (
+          <Stars radius={110} depth={60} count={IS_COMPACT ? 700 : 1400} factor={3} fade speed={0.35} />
+        )}
         <EnvironmentProbe />
         <BatmanEmblem theme={theme} />
         <ParticleGalaxy theme={theme} />
@@ -193,10 +197,11 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
   });
 
   const gold = theme === "day" ? "#c08a1c" : "#ffd84d";
+  const compactScale = IS_COMPACT ? 0.62 : 1;
 
   return (
     <group ref={outer} position={[0, 0.1, 0]}>
-      <group ref={inner} position={[0, 0.35, 0]}>
+      <group ref={inner} position={[0, 0.35, 0]} scale={compactScale}>
         <sprite scale={[8.4, 4, 1]} position={[0, 0, -0.55]}>
           <spriteMaterial
             ref={glowMat}
@@ -218,7 +223,7 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
           />
         </mesh>
       </group>
-      <mesh ref={halo} rotation={[1.85, 0.2, 0]} position={[0, 0.35, 0]}>
+      <mesh ref={halo} rotation={[1.85, 0.2, 0]} position={[0, 0.35, 0]} scale={compactScale}>
         <torusGeometry args={[3.05, 0.018, 8, 140]} />
         <meshBasicMaterial color={gold} transparent opacity={theme === "day" ? 0.4 : 0.28} />
       </mesh>
@@ -236,7 +241,7 @@ function ParticleGalaxy({ theme }: { theme: SceneTheme }) {
   const c = SCENE[theme];
 
   const { positions, connections } = useMemo(() => {
-    const count = 520;
+    const count = IS_COMPACT ? 280 : 520;
     const pts = new Float32Array(count * 3);
     const nodes: THREE.Vector3[] = [];
 
@@ -358,7 +363,7 @@ function PipelineRings({ theme }: { theme: SceneTheme }) {
   });
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} scale={IS_COMPACT ? 0.6 : 1}>
       {[3.2, 3.9, 4.6, 5.3].map((r, i) => (
         <mesh key={r} rotation={[Math.PI / 2 + i * 0.16, i * 0.3, 0]}>
           <torusGeometry args={[r, 0.004, 8, 180]} />
@@ -376,7 +381,7 @@ function PipelineRings({ theme }: { theme: SceneTheme }) {
 /* ------------------------------------------------------------------ */
 /* Gotham rain: falling line streaks                                    */
 /* ------------------------------------------------------------------ */
-const RAIN_COUNT = 480;
+const RAIN_COUNT = IS_COMPACT ? 260 : 480;
 
 function GothamRain({ theme }: { theme: SceneTheme }) {
   const linesRef = useRef<THREE.LineSegments>(null);
@@ -444,7 +449,7 @@ function BatSignalBeam({ theme }: { theme: SceneTheme }) {
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 3.2, -3]} rotation={[Math.PI, 0, 0]}>
+    <mesh ref={meshRef} position={[0, 3.2, -3]} rotation={[Math.PI, 0, 0]} scale={IS_COMPACT ? 0.7 : 1}>
       <coneGeometry args={[4.2, 10, 32, 1, true]} />
       <meshBasicMaterial color={c.beamColor} transparent opacity={c.beamBase} side={THREE.BackSide} depthWrite={false} />
     </mesh>

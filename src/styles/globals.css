@@ -20,6 +20,9 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -73,6 +76,11 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button,
+a {
+  touch-action: manipulation;
 }
 
 ::selection {
@@ -199,7 +207,8 @@ main {
 /* ---------- navigation ---------- */
 .site-nav {
   position: fixed;
-  inset: 1rem 1rem auto;
+  inset: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) auto
+    max(0.75rem, env(safe-area-inset-left));
   z-index: 30;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1124,6 +1133,11 @@ h1 {
   overflow-x: auto;
   padding-bottom: 0.75rem;
   scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.timeline::-webkit-scrollbar {
+  display: none;
 }
 
 .timeline-item {
@@ -1232,14 +1246,26 @@ h1 {
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
   .site-nav {
-    grid-template-columns: auto auto;
+    grid-template-columns: auto 1fr auto;
   }
 
   .site-nav nav {
     grid-column: 1 / -1;
+    grid-row: 2;
     justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 0.2rem;
+    scrollbar-width: none;
+  }
+
+  .site-nav nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-actions {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-end;
   }
 
   .about-grid,
@@ -1263,12 +1289,58 @@ h1 {
 }
 
 @media (max-width: 560px) {
+  .site-nav {
+    padding: 0.5rem;
+  }
+
+  .site-nav nav {
+    gap: 0.9rem;
+  }
+
+  .theme-toggle span:not(.theme-toggle-icon),
+  .icon-button span {
+    display: none;
+  }
+
+  .theme-toggle,
+  .icon-button {
+    min-width: 2.55rem;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .nav-actions {
+    gap: 0.4rem;
+  }
+
   .hero-section {
     padding-top: 10rem;
+    padding-bottom: 4rem;
+  }
+
+  h1 {
+    font-size: clamp(2.9rem, 15vw, 5rem);
+  }
+
+  .hero-text {
+    font-size: 0.98rem;
   }
 
   .skill-grid {
     grid-template-columns: 1fr;
+  }
+
+  .project-card,
+  .project-card.featured {
+    min-height: 0;
+  }
+
+  .stats-strip {
+    gap: 0.7rem;
+  }
+
+  .stat-cell {
+    padding: 1.1rem 0.75rem;
   }
 
   .hero-actions,

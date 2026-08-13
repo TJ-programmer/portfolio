@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "@/styles/globals.css";
 
@@ -30,6 +30,13 @@ export const metadata: Metadata = {
       "Noir, cinematic AI portfolio featuring real projects across data, models, deployment, and product interfaces.",
     type: "website",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#04050a",
 };
 
 export default function RootLayout({

@@ -9,6 +9,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,6 +31,7 @@ export default function NeuralScene() {
         <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={26} />
         <CameraRig />
         <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />
+        <EnvironmentProbe />
         <SceneSubject />
         <ParticleGalaxy />
         <PipelineRings />
@@ -149,7 +151,8 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
     const s = 3.7 / Math.max(size.y, 0.001);
     return {
       scale: s,
-      offset: [0, 0.6 - center.y * s, -center.z * s] as const,
+      offset: [-center.x * s, 0.6 - center.y * s, -center.z * s] as const,
+      poolX: -center.x * s,
       poolY: 0.6 - center.y * s - size.y * s * 0.48,
     };
   }, [model]);
@@ -206,7 +209,7 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
       <pointLight position={[0, 5.5, 1.5]} intensity={22} color="#ffe9b0" />
       <pointLight position={[0, -0.5, 3]} intensity={6} color="#ffd84d" />
       {poolTex && (
-        <mesh position={[0, fitted.poolY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh position={[fitted.poolX, fitted.poolY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[6.2, 6.2]} />
           <meshBasicMaterial
             map={poolTex}
@@ -1026,6 +1029,26 @@ function LightningController() {
 /* ------------------------------------------------------------------ */
 /* Camera rig: GSAP scroll-driven flythrough                            */
 /* ------------------------------------------------------------------ */
+function EnvironmentProbe() {
+  const { gl, scene } = useThree();
+  const sceneRef = useRef(scene);
+
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    const s = sceneRef.current;
+    s.environment = env;
+    s.environmentIntensity = 0.45;
+    return () => {
+      s.environment = null;
+      env.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene]);
+
+  return null;
+}
+
 function CameraRig() {
   const { camera } = useThree();
 

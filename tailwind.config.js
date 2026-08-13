@@ -4,16 +4,27 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: '#05060A',
-        cyan: '#7CFFCB',
-        violet: '#8A5CF6',
-        muted: '#A0AEC0',
-        surface: '#0D0E14',
+        bg: '#04050a',
+        surface: '#0d101a',
+        gold: '#ffd84d',
+        goldDim: '#b98a1f',
+        steel: '#7d8aa0',
+        muted: '#9aa3b5',
+        text: '#f2efdf',
       },
       fontFamily: {
-        display: ['Clash Display', 'Space Grotesk', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
-        body: ['Inter', 'sans-serif'],
+        display: ['var(--font-space)', 'sans-serif'],
+        mono: ['var(--font-jetbrains)', 'monospace'],
+        body: ['var(--font-inter)', 'sans-serif'],
+      },
+      keyframes: {
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
+      },
+      animation: {
+        marquee: 'marquee 30s linear infinite',
       },
     },
   },

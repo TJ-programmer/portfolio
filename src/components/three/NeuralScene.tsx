@@ -1,7 +1,9 @@
 "use client";
 
+/* eslint-disable react-hooks/purity -- random scene-data generation during render is standard for three.js */
+
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Float, Line, Stars } from "@react-three/drei";
+import { Float, Stars } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useMemo, useRef } from "react";
@@ -12,78 +14,163 @@ gsap.registerPlugin(ScrollTrigger);
 export default function NeuralScene() {
   return (
     <div className="scene-shell" aria-hidden="true">
-      <Canvas camera={{ position: [0, 0, 8], fov: 54 }} dpr={[1, 1.6]} gl={{ antialias: true, alpha: true }}>
-        <color attach="background" args={["#030405"]} />
-        <fog attach="fog" args={["#030405", 8, 22]} />
-        <ambientLight intensity={0.5} />
-        <pointLight position={[0, 6, 4]} color="#ffd84d" intensity={60} />
-        <pointLight position={[-5, -4, 5]} color="#4a5568" intensity={18} />
-        <pointLight position={[5, 2, 3]} color="#ffd84d" intensity={20} />
-        <CameraPath />
-        <Stars radius={90} depth={50} count={1200} factor={3} fade speed={0.3} />
-        <Float speed={1.2} rotationIntensity={0.2} floatIntensity={0.5}>
-          <NeuralParticles />
+      <Canvas
+        camera={{ position: [0, 0, 8], fov: 54 }}
+        dpr={[1, 1.6]}
+        gl={{ antialias: true, alpha: true }}
+      >
+        <color attach="background" args={["#04050a"]} />
+        <fog attach="fog" args={["#04050a", 9, 26]} />
+        <ambientLight intensity={0.35} />
+        <pointLight position={[0, 6, 4]} color="#ffd84d" intensity={70} />
+        <pointLight position={[-6, -4, 5]} color="#3c4757" intensity={22} />
+        <pointLight position={[6, 2, 3]} color="#ffd84d" intensity={24} />
+        <CameraRig />
+        <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />
+        <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.6}>
+          <BatEmblem />
+          <ParticleGalaxy />
           <PipelineRings />
         </Float>
-        <RainParticles />
+        <GothamRain />
         <BatSignalBeam />
+        <LightningController />
       </Canvas>
     </div>
   );
 }
 
-function CameraPath() {
-  const { camera } = useThree();
-
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) return;
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: "main",
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 1.2,
-      },
-    });
-
-    tl.to(camera.position, { x: 1.6, y: -0.5, z: 6.6, ease: "none" })
-      .to(camera.position, { x: -1.4, y: 0.6, z: 7.2, ease: "none" })
-      .to(camera.position, { x: 0.4, y: -0.2, z: 7.8, ease: "none" })
-      .to(camera.position, { x: 0, y: 0, z: 8.4, ease: "none" });
-
-    return () => {
-      tl.scrollTrigger?.kill();
-      tl.kill();
-    };
-  }, [camera]);
-
-  useFrame(() => camera.lookAt(0, 0, 0));
-  return null;
+/* ------------------------------------------------------------------ */
+/* Bat emblem: extruded from the bat logo silhouette                    */
+/* ------------------------------------------------------------------ */
+function batShape(): THREE.Shape {
+  const pts: [number, number][] = [
+    [0, 18],
+    [14, 8],
+    [27, 20],
+    [37, 4],
+    [50, 16],
+    [63, 4],
+    [73, 20],
+    [86, 8],
+    [100, 18],
+    [82, 28],
+    [62, 24],
+    [50, 38],
+    [38, 24],
+    [18, 28],
+  ];
+  const shape = new THREE.Shape();
+  pts.forEach(([x, y], i) => {
+    const px = (x / 100) * 5 - 2.5;
+    const py = (y / 44) * 2.2 - 1.1;
+    if (i === 0) shape.moveTo(px, py);
+    else shape.lineTo(px, py);
+  });
+  shape.closePath();
+  return shape;
 }
 
-function NeuralParticles() {
+function BatEmblem() {
+  const groupRef = useRef<THREE.Group>(null);
+  const coreRef = useRef<THREE.Mesh>(null);
+
+  const { geo, coreGeo } = useMemo(() => {
+    const shape = batShape();
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.28,
+      bevelEnabled: true,
+      bevelThickness: 0.1,
+      bevelSize: 0.06,
+      bevelSegments: 4,
+      steps: 2,
+    });
+    geo.center();
+    const coreGeo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.05,
+      bevelEnabled: false,
+    });
+    coreGeo.center();
+    return { geo, coreGeo };
+  }, []);
+
+  const glowTexture = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d")!;
+    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, "rgba(255,216,77,0.55)");
+    grad.addColorStop(0.4, "rgba(255,216,77,0.16)");
+    grad.addColorStop(1, "rgba(255,216,77,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    const tex = new THREE.CanvasTexture(c);
+    return tex;
+  }, []);
+
+  useFrame(({ clock, pointer }) => {
+    if (!groupRef.current || !coreRef.current) return;
+    const t = clock.elapsedTime;
+    groupRef.current.rotation.y = Math.sin(t * 0.22) * 0.55 + pointer.x * 0.25;
+    groupRef.current.rotation.x = pointer.y * 0.18;
+    groupRef.current.position.y = Math.sin(t * 0.6) * 0.12;
+    const mat = coreRef.current.material as THREE.MeshBasicMaterial;
+    mat.opacity = 0.55 + Math.sin(t * 1.4) * 0.2;
+  });
+
+  return (
+    <group position={[0, 1.4, 0]}>
+      <sprite position={[0, 0, -0.9]}>
+        <spriteMaterial map={glowTexture} transparent opacity={0.8} depthWrite={false} />
+      </sprite>
+      <group ref={groupRef}>
+        <mesh geometry={geo} castShadow>
+          <meshStandardMaterial
+            color="#1a1d26"
+            metalness={0.85}
+            roughness={0.32}
+            emissive="#ffd84d"
+            emissiveIntensity={0.22}
+          />
+        </mesh>
+        <mesh ref={coreRef} geometry={coreGeo} position={[0, 0, 0.16]}>
+          <meshBasicMaterial
+            color="#ffd84d"
+            transparent
+            opacity={0.62}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Particle galaxy with mouse parallax                                  */
+/* ------------------------------------------------------------------ */
+function ParticleGalaxy() {
   const pointsRef = useRef<THREE.Points>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const mouse = useRef(new THREE.Vector2(0, 0));
 
   const { positions, connections } = useMemo(() => {
-    const count = 480;
+    const count = 520;
     const pts = new Float32Array(count * 3);
     const nodes: THREE.Vector3[] = [];
 
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(2 * Math.random() - 1);
       const theta = Math.random() * Math.PI * 2;
-      const r = 2.0 + Math.sin(i * 0.37) * 0.6 + Math.random() * 0.4;
+      const r = 2.4 + Math.sin(i * 0.31) * 0.7 + Math.random() * 0.5;
       const x = r * Math.sin(phi) * Math.cos(theta);
-      const y = r * Math.cos(phi) * 0.7;
+      const y = r * Math.cos(phi) * 0.75;
       const z = r * Math.sin(phi) * Math.sin(theta);
       pts[i * 3] = x;
       pts[i * 3 + 1] = y;
       pts[i * 3 + 2] = z;
-      if (i % 24 === 0) nodes.push(new THREE.Vector3(x, y, z));
+      if (i % 22 === 0) nodes.push(new THREE.Vector3(x, y, z));
     }
 
     const lines: [THREE.Vector3, THREE.Vector3][] = [];
@@ -105,8 +192,8 @@ function NeuralParticles() {
 
   useFrame(({ clock }) => {
     if (pointsRef.current) {
-      pointsRef.current.rotation.y = clock.elapsedTime * 0.07 + mouse.current.x * 0.18;
-      pointsRef.current.rotation.x = mouse.current.y * 0.09;
+      pointsRef.current.rotation.y = clock.elapsedTime * 0.05 + mouse.current.x * 0.2;
+      pointsRef.current.rotation.x = mouse.current.y * 0.1;
     }
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = clock.elapsedTime;
@@ -137,8 +224,8 @@ function NeuralParticles() {
               vec3 pos = position;
               float wave = sin(position.x * 2.8 + uTime * 1.1) * 0.09;
               pos += normalize(position) * wave;
-              pos.x += uMouse.x * 0.1;
-              pos.y += uMouse.y * 0.07;
+              pos.x += uMouse.x * 0.12;
+              pos.y += uMouse.y * 0.08;
               vPulse = wave;
               vec4 mv = modelViewMatrix * vec4(pos, 1.0);
               gl_PointSize = 3.2 * (8.0 / -mv.z);
@@ -159,37 +246,45 @@ function NeuralParticles() {
         />
       </points>
       {connections.map(([a, b], i) => (
-        <Line
-          key={`${a.x.toFixed(2)}-${i}`}
-          points={[a, b]}
-          color={i % 3 === 0 ? "#ffd84d" : i % 3 === 1 ? "#8a9bb0" : "#ffd84d"}
-          lineWidth={0.6}
-          transparent
-          opacity={0.15}
-        />
+        <line key={`${i}`}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={[new Float32Array([a.x, a.y, a.z, b.x, b.y, b.z]), 3]}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial
+            color={i % 3 === 0 ? "#ffd84d" : "#8a9bb0"}
+            transparent
+            opacity={0.14}
+          />
+        </line>
       ))}
     </group>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Radar / pipeline rings                                               */
+/* ------------------------------------------------------------------ */
 function PipelineRings() {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    groupRef.current.rotation.z = clock.elapsedTime * 0.04;
-    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.18) * 0.22;
+    groupRef.current.rotation.z = clock.elapsedTime * 0.035;
+    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.16) * 0.2;
   });
 
   return (
     <group ref={groupRef}>
-      {[2.8, 3.5, 4.15, 4.8].map((r, i) => (
-        <mesh key={r} rotation={[Math.PI / 2 + i * 0.15, i * 0.28, 0]}>
-          <torusGeometry args={[r, 0.005, 8, 160]} />
+      {[3.2, 3.9, 4.6, 5.3].map((r, i) => (
+        <mesh key={r} rotation={[Math.PI / 2 + i * 0.16, i * 0.3, 0]}>
+          <torusGeometry args={[r, 0.004, 8, 180]} />
           <meshBasicMaterial
             color={i % 2 === 0 ? "#ffd84d" : "#6d7888"}
             transparent
-            opacity={i === 1 ? 0.28 : 0.16}
+            opacity={i === 1 ? 0.3 : 0.16}
           />
         </mesh>
       ))}
@@ -197,68 +292,190 @@ function PipelineRings() {
   );
 }
 
-function RainParticles() {
-  const ref = useRef<THREE.Points>(null);
+/* ------------------------------------------------------------------ */
+/* Gotham rain: falling line streaks                                    */
+/* ------------------------------------------------------------------ */
+const RAIN_COUNT = 480;
 
-  const positions = useMemo(() => {
-    const count = 600;
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 22;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 14;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 10 - 2;
+function GothamRain() {
+  const linesRef = useRef<THREE.LineSegments>(null);
+
+  const { positions, speeds } = useMemo(() => {
+    const arr = new Float32Array(RAIN_COUNT * 2 * 3);
+    const spd = new Float32Array(RAIN_COUNT);
+    for (let i = 0; i < RAIN_COUNT; i++) {
+      arr[i * 6] = (Math.random() - 0.5) * 26;
+      arr[i * 6 + 1] = (Math.random() - 0.5) * 18;
+      arr[i * 6 + 2] = (Math.random() - 0.5) * 10 - 3;
+      arr[i * 6 + 3] = arr[i * 6] - 0.09;
+      arr[i * 6 + 4] = arr[i * 6 + 1] - 0.34;
+      arr[i * 6 + 5] = arr[i * 6 + 2];
+      spd[i] = 0.09 + Math.random() * 0.1;
     }
-    return arr;
+    return { positions: arr, speeds: spd };
   }, []);
 
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    const pos = ref.current.geometry.attributes.position.array as Float32Array;
-    const t = clock.elapsedTime * 0.9;
-    for (let i = 0; i < pos.length / 3; i++) {
-      pos[i * 3 + 1] -= 0.028;
-      pos[i * 3] -= 0.006;
-      if (pos[i * 3 + 1] < -7) {
-        pos[i * 3 + 1] = 7;
-        pos[i * 3] = (Math.random() - 0.5) * 22;
+  useFrame(() => {
+    if (!linesRef.current) return;
+    const pos = linesRef.current.geometry.attributes.position.array as Float32Array;
+    for (let i = 0; i < RAIN_COUNT; i++) {
+      const fall = speeds[i];
+      pos[i * 6 + 1] -= fall;
+      pos[i * 6 + 4] -= fall;
+      pos[i * 6] -= 0.012;
+      pos[i * 6 + 3] -= 0.012;
+      if (pos[i * 6 + 1] < -9) {
+        const y = 9;
+        const x = (Math.random() - 0.5) * 26;
+        pos[i * 6] = x;
+        pos[i * 6 + 1] = y;
+        pos[i * 6 + 3] = x - 0.09;
+        pos[i * 6 + 4] = y - 0.34;
       }
     }
-    ref.current.geometry.attributes.position.needsUpdate = true;
-    ref.current.rotation.z = Math.sin(t * 0.05) * 0.02;
+    linesRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <points ref={ref}>
+    <lineSegments ref={linesRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial
-        color="#4a6080"
-        size={0.018}
-        transparent
-        opacity={0.35}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
+      <lineBasicMaterial color="#3d4f68" transparent opacity={0.34} blending={THREE.AdditiveBlending} />
+    </lineSegments>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Bat-signal beam cone                                                 */
+/* ------------------------------------------------------------------ */
 function BatSignalBeam() {
   const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
     const t = clock.elapsedTime;
-    meshRef.current.rotation.z = Math.sin(t * 0.22) * 0.18;
+    meshRef.current.rotation.z = Math.sin(t * 0.2) * 0.16;
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = 0.06 + Math.sin(t * 0.8) * 0.02;
+    mat.opacity = 0.06 + Math.sin(t * 0.8) * 0.018;
   });
 
   return (
-    <mesh ref={meshRef} position={[0, -1, -3]} rotation={[0, 0, 0]}>
-      <coneGeometry args={[3.5, 9, 32, 1, true]} />
-      <meshBasicMaterial color="#ffd84d" transparent opacity={0.07} side={THREE.BackSide} />
+    <mesh ref={meshRef} position={[0, -0.6, -3]} rotation={[0, 0, 0]}>
+      <coneGeometry args={[4.2, 10, 32, 1, true]} />
+      <meshBasicMaterial color="#ffd84d" transparent opacity={0.06} side={THREE.BackSide} depthWrite={false} />
     </mesh>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Lightning: random flashes + brief camera shake                       */
+/* ------------------------------------------------------------------ */
+function LightningController() {
+  const flashRef = useRef<THREE.Sprite>(null);
+  const flashMatRef = useRef<THREE.SpriteMaterial>(null);
+  const shakeRef = useRef(0);
+  const cameraRef = useRef<THREE.Camera | null>(null);
+  const camera = useThree((s) => s.camera);
+
+  useEffect(() => {
+    cameraRef.current = camera;
+  }, [camera]);
+
+  const flashTex = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const g = c.getContext("2d")!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, "rgba(255,240,190,1)");
+    grad.addColorStop(0.55, "rgba(255,216,77,0.4)");
+    grad.addColorStop(1, "rgba(255,216,77,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }, []);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+
+    const strike = () => {
+      if (cancelled) return;
+      if (flashMatRef.current) {
+        flashMatRef.current.opacity = 1;
+        gsap.to(flashMatRef.current, { opacity: 0, duration: 0.5, ease: "power2.out" });
+      }
+      shakeRef.current = 0.12;
+      gsap.to(shakeRef, { current: 0, duration: 0.6, ease: "power3.out" });
+      timeout = setTimeout(strike, 3500 + Math.random() * 6500);
+    };
+
+    timeout = setTimeout(strike, 2200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  useFrame(() => {
+    const cam = cameraRef.current;
+    if (!cam || !flashRef.current) return;
+    flashRef.current.position.copy(cam.position);
+    const dir = cam.getWorldDirection(new THREE.Vector3());
+    flashRef.current.position.addScaledVector(dir, 4);
+    flashRef.current.lookAt(cam.position);
+
+    if (shakeRef.current > 0.001) {
+      const s = shakeRef.current;
+      cam.position.x += (Math.random() - 0.5) * s;
+      cam.position.y += (Math.random() - 0.5) * s;
+    }
+  });
+
+  return (
+    <sprite ref={flashRef} scale={[34, 22, 1]}>
+      <spriteMaterial
+        ref={flashMatRef}
+        map={flashTex}
+        transparent
+        opacity={0}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </sprite>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Camera rig: GSAP scroll-driven flythrough                            */
+/* ------------------------------------------------------------------ */
+function CameraRig() {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: "main",
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 1.2,
+      },
+    });
+
+    tl.to(camera.position, { x: 1.9, y: -0.6, z: 6.4, ease: "none" })
+      .to(camera.position, { x: -1.6, y: 0.7, z: 7.1, ease: "none" })
+      .to(camera.position, { x: 0.5, y: -0.3, z: 7.7, ease: "none" })
+      .to(camera.position, { x: 0, y: 0, z: 8.4, ease: "none" });
+
+    return () => {
+      tl.scrollTrigger?.kill();
+      tl.kill();
+    };
+  }, [camera]);
+
+  useFrame(() => camera.lookAt(0, 0, 0));
+  return null;
 }

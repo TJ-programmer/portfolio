@@ -18,7 +18,7 @@ export default function NeuralScene() {
       <Canvas
         camera={{ position: [0, 0, 8], fov: 54 }}
         dpr={[1, 1.6]}
-        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.35 }}
+        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.12 }}
       >
         <color attach="background" args={["#04050a"]} />
         <fog attach="fog" args={["#04050a", 9, 26]} />
@@ -200,11 +200,11 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
 
   return (
     <group ref={outer}>
-      <directionalLight position={[4, 6, 4]} intensity={3.6} color="#ffffff" />
-      <directionalLight position={[-5, 2, 3]} intensity={1.8} color="#ffd84d" />
-      <directionalLight position={[0, 3, -6]} intensity={1.4} color="#2f6bff" />
-      <pointLight position={[0, 5.5, 1.5]} intensity={70} color="#ffe9b0" />
-      <pointLight position={[0, -0.5, 3]} intensity={18} color="#ffd84d" />
+      <directionalLight position={[4, 6, 4]} intensity={1.1} color="#ffffff" />
+      <directionalLight position={[-5, 2, 3]} intensity={0.55} color="#ffd84d" />
+      <directionalLight position={[0, 3, -6]} intensity={0.7} color="#3a6bff" />
+      <pointLight position={[0, 5.5, 1.5]} intensity={22} color="#ffe9b0" />
+      <pointLight position={[0, -0.5, 3]} intensity={6} color="#ffd84d" />
       {poolTex && (
         <mesh position={[0, fitted.poolY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[6.2, 6.2]} />
@@ -213,7 +213,7 @@ function BatmanModel({ model }: { model: THREE.Object3D }) {
             transparent
             depthWrite={false}
             blending={THREE.AdditiveBlending}
-            opacity={0.9}
+            opacity={0.7}
           />
         </mesh>
       )}

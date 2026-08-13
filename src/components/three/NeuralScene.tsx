@@ -6,7 +6,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -29,7 +29,7 @@ export default function NeuralScene() {
         <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={26} />
         <CameraRig />
         <Stars radius={110} depth={60} count={1400} factor={3} fade speed={0.35} />
-        <BatmanFigure />
+        <FigureStage />
         <ParticleGalaxy />
         <PipelineRings />
         <GothamRain />
@@ -74,6 +74,163 @@ function batShape(): THREE.Shape {
 /* ------------------------------------------------------------------ */
 /* The Dark Knight: procedural armored figure with an animated cape     */
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* Photo stage: load public/images/batman.jpg and render it as a        */
+/* cinematic 2.5D billboard; fall back to the procedural figure.        */
+/* ------------------------------------------------------------------ */
+const BATMAN_PHOTO = "/images/batman.jpg";
+
+function FigureStage() {
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      BATMAN_PHOTO,
+      (t) => {
+        if (!alive) {
+          t.dispose();
+          return;
+        }
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+        setTex(t);
+      },
+      undefined,
+      () => {
+        if (alive) setFailed(true);
+      }
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (failed) return <BatmanFigure />;
+  if (!tex) return null;
+  return <BatmanImage tex={tex} />;
+}
+
+function BatmanImage({ tex }: { tex: THREE.Texture }) {
+  const planeRef = useRef<THREE.Mesh>(null);
+  const haloRef = useRef<THREE.Sprite>(null);
+
+  const size = useMemo<[number, number]>(() => {
+    const img = tex.image as { width?: number; height?: number } | undefined;
+    if (img && img.width && img.height) {
+      const H = 5.6;
+      const W = Math.min((img.width / img.height) * H, 4.4);
+      return [W, H];
+    }
+    return [3.6, 5.6];
+  }, [tex]);
+
+  const haloTex = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const g = c.getContext("2d")!;
+    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, "rgba(255,216,77,0.5)");
+    grad.addColorStop(0.45, "rgba(255,216,77,0.14)");
+    grad.addColorStop(1, "rgba(255,216,77,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(c);
+  }, []);
+
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: {
+          uTexture: { value: tex },
+          uTime: { value: 0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uTexture;
+          uniform float uTime;
+          varying vec2 vUv;
+          void main() {
+            vec2 uv = vUv + vec2(
+              sin(vUv.y * 8.0 + uTime * 1.3) * 0.002,
+              cos(vUv.x * 8.0 + uTime * 1.3) * 0.002
+            );
+            vec4 col = texture2D(uTexture, uv);
+
+            float edgeX = smoothstep(0.0, 0.14, vUv.x) * smoothstep(1.0, 0.86, vUv.x);
+            float edgeY = smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
+            float edge = 1.0 - min(edgeX, edgeY);
+            edge = smoothstep(0.3, 0.85, edge);
+
+            float flicker = 0.72 + 0.28 * sin(uTime * 6.0) * sin(uTime * 2.3);
+
+            vec3 glow = vec3(1.0, 0.847, 0.302) * edge * 0.55 * flicker;
+            vec3 rgb = col.rgb * 1.06 + glow;
+            rgb += vec3(0.85, 0.9, 1.0) * 0.16 * smoothstep(0.0, 0.4, 1.0 - vUv.y) * flicker;
+
+            float vg = smoothstep(0.85, 0.35, length(vUv - 0.5) * 1.4);
+            rgb *= 0.72 + 0.28 * vg;
+
+            rgb = 1.0 - exp(-rgb * 1.15);
+            rgb = pow(rgb, vec3(1.0 / 2.2));
+
+            float alpha = edgeX * edgeY * 0.98;
+            gl_FragColor = vec4(rgb, alpha);
+          }
+        `,
+      }),
+    [tex]
+  );
+
+  useFrame(({ clock, pointer }) => {
+    const t = clock.elapsedTime;
+    if (planeRef.current) {
+      planeRef.current.position.x = 0.75 + pointer.x * 0.45;
+      planeRef.current.position.y = 0.1 + pointer.y * 0.2 + Math.sin(t * 0.8) * 0.05;
+      planeRef.current.rotation.y = pointer.x * 0.12;
+      planeRef.current.rotation.x = -pointer.y * 0.06;
+      const s = 1 + Math.sin(t * 1.2) * 0.006;
+      planeRef.current.scale.setScalar(s);
+    }
+    if (haloRef.current) {
+      const hm = haloRef.current.material as THREE.SpriteMaterial;
+      hm.opacity = 0.34 + Math.sin(t * 1.5) * 0.08;
+    }
+    const mat = planeRef.current?.material as THREE.ShaderMaterial | undefined;
+    if (mat) {
+      mat.uniforms.uTime.value = t;
+    }
+  });
+
+  return (
+    <group>
+      <sprite ref={haloRef} position={[0.75, 0.1, -0.9]} scale={[size[0] + 1.6, size[1] + 1.2, 1]}>
+        <spriteMaterial
+          map={haloTex}
+          transparent
+          opacity={0.34}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </sprite>
+      <mesh ref={planeRef} material={mat} position={[0.75, 0.1, 0]}>
+        <planeGeometry args={[size[0], size[1]]} />
+      </mesh>
+    </group>
+  );
+}
+
 function BatmanFigure() {
   const groupRef = useRef<THREE.Group>(null);
   const torsoRef = useRef<THREE.Mesh>(null);

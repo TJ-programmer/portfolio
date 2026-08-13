@@ -16,6 +16,7 @@ import {
 import { Pill } from "@/components/ui/Pill";
 import { Section } from "@/components/ui/Section";
 import { Loader } from "@/components/Loader";
+import CardTilt from "@/components/CardTilt";
 import {
   ArrowIcon,
   BatIcon,
@@ -70,6 +71,7 @@ export default function Home() {
       <a className="skip-link" href="#projects">Skip to missions</a>
       <NeuralScene />
       <RainOverlay />
+      <CardTilt />
       <Navigation soundEnabled={soundEnabled} onSoundToggle={toggleSound} />
       <Hero />
       <TechMarquee />
@@ -335,9 +337,9 @@ function SkillCard({
     <motion.article
       ref={ref}
       className="skill-card"
-      initial={{ opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
+      initial={{ opacity: 0, y: 28, rotateX: -22, rotateY: -16, scale: 0.92, transformPerspective: 900 }}
+      animate={inView ? { opacity: 1, y: 0, rotateX: 0, rotateY: 0, scale: 1 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.6, ease: "easeOut" }}
     >
       <div className="skill-icon" aria-hidden="true">
         {icon}
@@ -361,10 +363,10 @@ function Projects() {
           <motion.article
             className={`project-card ${project.featured ? "featured" : ""}`}
             key={project.title}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 36, rotateY: -12, rotateX: -10, scale: 0.94, transformPerspective: 900 }}
+            whileInView={{ opacity: 1, y: 0, rotateX: 0, rotateY: 0, scale: 1 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ delay: i * 0.08, duration: 0.5 }}
+            transition={{ delay: i * 0.08, duration: 0.6, ease: "easeOut" }}
           >
             <div className="project-header">
               <div className="project-index">{String(i + 1).padStart(2, "0")}</div>
@@ -407,10 +409,10 @@ function Achievements() {
           <motion.article
             className="timeline-item"
             key={`${item.year}-${item.title}`}
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, x: 28, rotateY: -14, transformPerspective: 900 }}
+            whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.45 }}
+            transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
           >
             <div className="timeline-bat" aria-hidden="true">
               <BatIcon size={16} />
@@ -434,10 +436,10 @@ function Internships() {
           <motion.article
             className="internship-card"
             key={internship.company}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 26, rotateX: -10, rotateY: -8, scale: 0.95, transformPerspective: 900 }}
+            whileInView={{ opacity: 1, y: 0, rotateX: 0, rotateY: 0, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
           >
             <div className="internship-meta">
               <span>{internship.period}</span>

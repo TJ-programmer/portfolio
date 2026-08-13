@@ -727,6 +727,16 @@ h1 {
     inset 0 0 26px rgba(255, 216, 77, 0.05);
 }
 
+.skill-card,
+.project-card,
+.timeline-item,
+.internship-card,
+.id-panel,
+.prose-panel,
+.contact-form {
+  will-change: transform;
+}
+
 /* Idle float: uses the `translate` property so it composes with hover transforms */
 @keyframes card-float {
   0%,

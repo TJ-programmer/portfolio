@@ -3,7 +3,7 @@ export const contact = {
   github: "https://github.com/TJ-programmer",
   githubHandle: "TJ-programmer",
   linkedin: "https://www.linkedin.com/in/tarun-j-66a374247/",
-  hackerrank: "",
+  hackerrank: "https://www.hackerrank.com/profile/tarunjj2006",
 };
 
 export const identity = {

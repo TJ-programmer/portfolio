@@ -1,3 +1,20 @@
+export const batmanQuotes = [
+  { text: "It's not who I am underneath, but what I do that defines me.", source: "Batman" },
+  { text: "Why do we fall, sir? So that we can learn to pick ourselves up.", source: "Alfred Pennyworth" },
+  { text: "You either die a hero, or you live long enough to see yourself become the villain.", source: "Harvey Dent" },
+  { text: "The night is darkest just before the dawn. And I promise you, the dawn is coming.", source: "Harvey Dent" },
+  { text: "A hero can be anyone... putting a coat around a young boy's shoulders to let him know the world hadn't ended.", source: "Batman" },
+  { text: "If you're good at something, never do it for free.", source: "The Joker" },
+  { text: "The training is nothing. The will is everything.", source: "Ra's al Ghul" },
+  { text: "It's not the money. It's the message.", source: "Batman" },
+  { text: "The world only makes sense when you force it to.", source: "Batman" },
+];
+
+export const footerQuote = {
+  text: "I'm whatever Gotham needs me to be.",
+  source: "Batman",
+};
+
 export const contact = {
   email: "tarunjj2006@gmail.com",
   github: "https://github.com/TJ-programmer",

@@ -668,6 +668,84 @@ h1 {
   }
 }
 
+/* ---------- batman quotes ---------- */
+.quote-strip {
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+  background: rgba(4, 5, 10, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.quote-strip-inner {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2.4rem 0;
+}
+
+.quote-rotator {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.quote-glyph {
+  color: var(--gold);
+  font-family: var(--font-space);
+  font-size: 2.6rem;
+  line-height: 0.9;
+  user-select: none;
+}
+
+.quote-text {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--text);
+  font-family: var(--font-space);
+  font-size: clamp(1rem, 2.6vw, 1.45rem);
+  font-style: italic;
+  line-height: 1.5;
+  animation: quoteSwap 0.6s ease-out;
+}
+
+@keyframes quoteSwap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quote-source {
+  display: block;
+  margin-top: 0.65rem;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hero-quote {
+  margin: 2.2rem auto 0;
+  max-width: 640px;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-quote .quote-text {
+  font-size: clamp(0.95rem, 2.4vw, 1.25rem);
+}
+
+.hero-quote .quote-glyph {
+  display: none;
+}
+
 /* ---------- sections ---------- */
 .content-section {
   position: relative;
@@ -1232,6 +1310,32 @@ h1 {
   text-transform: uppercase;
 }
 
+.footer-quote {
+  margin: 1.4rem auto 0;
+  max-width: 44ch;
+}
+
+.footer-quote p {
+  color: rgba(245, 247, 251, 0.78);
+  font-family: var(--font-space);
+  font-size: 0.95rem;
+  font-style: italic;
+  letter-spacing: 0;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.footer-quote cite {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-style: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 .footer-top {
   display: inline-flex;
   align-items: center;
@@ -1547,6 +1651,10 @@ html[data-theme="day"] .marquee-item {
   color: rgba(20, 26, 38, 0.78);
 }
 
+html[data-theme="day"] .quote-strip {
+  background: rgba(255, 255, 255, 0.6);
+}
+
 html[data-theme="day"] .prose-panel,
 html[data-theme="day"] .id-panel,
 html[data-theme="day"] .skill-card,
@@ -1614,6 +1722,10 @@ html[data-theme="day"] .contact-form label {
 
 html[data-theme="day"] .site-footer {
   background: rgba(255, 255, 255, 0.7);
+}
+
+html[data-theme="day"] .footer-quote p {
+  color: rgba(20, 26, 38, 0.8);
 }
 
 html[data-theme="day"] .loader {

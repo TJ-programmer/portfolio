@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import {
   achievements,
+  batmanQuotes,
   contact,
+  footerQuote,
   heroStats,
   identity,
   internships,
@@ -106,6 +108,7 @@ export default function Home() {
       />
       <Hero />
       <TechMarquee />
+      <QuoteStrip />
       <About />
       <Stats />
       <Skills />
@@ -260,6 +263,7 @@ function Hero() {
             Light the signal <ArrowIcon size={14} />
           </a>
         </div>
+        <QuoteRotator className="hero-quote" />
       </motion.div>
 
       <div className="gotham-skyline" aria-hidden="true">
@@ -286,6 +290,41 @@ function TechMarquee() {
             <BoltIcon size={12} /> {item}
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- batman quotes ---------- */
+function QuoteRotator({ className }: { className?: string }) {
+  const [index, setIndex] = useState(0);
+  const quote = batmanQuotes[index % batmanQuotes.length];
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % batmanQuotes.length);
+    }, 6000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className={`quote-rotator ${className ?? ""}`} role="region" aria-label="Batman quote">
+      <span className="quote-glyph" aria-hidden="true">
+        &ldquo;
+      </span>
+      <p key={index} className="quote-text">
+        {quote.text}
+        <span className="quote-source">&mdash; {quote.source}</span>
+      </p>
+    </div>
+  );
+}
+
+function QuoteStrip() {
+  return (
+    <div className="quote-strip">
+      <div className="quote-strip-inner">
+        <QuoteRotator />
       </div>
     </div>
   );
@@ -603,6 +642,10 @@ function Footer() {
       <p>
         TARUN J — AI End-to-End Developer. Built in the dark, for the dark.
       </p>
+      <blockquote className="footer-quote">
+        <p>&ldquo;{footerQuote.text}&rdquo;</p>
+        <cite>&mdash; {footerQuote.source}</cite>
+      </blockquote>
       <a href="#top" className="footer-top">
         Back to top <ArrowIcon size={13} />
       </a>

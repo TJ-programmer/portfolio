@@ -100,6 +100,17 @@ export type Project = {
 
 export const projects: Project[] = [
   {
+    title: "envx",
+    tagline: "Faster, safer drop-in replacement for .env files",
+    description:
+      "A single static Go binary that keeps project env vars in one place — plain by default, secrets encrypted at rest with a project-local Fernet key and auto-gitignored. Injects them via envx run / envx shell, installs from npm, Homebrew, or Scoop, and boots in ~10ms with zero daemons.",
+    stack: ["Go", "CLI", "Fernet encryption", "npm", "Homebrew", "Scoop"],
+    links: [{ label: "View mission", href: "https://github.com/TJ-programmer/envx" }],
+    status: "Shipped",
+    featured: true,
+    language: "Go",
+  },
+  {
     title: "StudyMate",
     tagline: "Local-first AI study assistant",
     description:

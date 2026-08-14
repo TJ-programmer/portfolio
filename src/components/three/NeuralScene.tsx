@@ -29,22 +29,22 @@ const SCENE = {
     pointRim: 26,
     ringGold: "#ffd84d",
     ringSteel: "#6d7888",
-    ringA: 0.3,
-    ringB: 0.16,
+    ringA: 0.18,
+    ringB: 0.09,
     rainColor: "#3d4f68",
-    rainOpacity: 0.34,
+    rainOpacity: 0.2,
     rainBlend: THREE.AdditiveBlending,
     beamColor: "#ffd84d",
-    beamBase: 0.07,
-    beamTint: 0.02,
+    beamBase: 0.045,
+    beamTint: 0.012,
     galaxyGold: "1.0, 0.847, 0.302",
     galaxySteel: "0.29, 0.34, 0.42",
     galaxyMix: 0.38,
-    galaxyAlpha: 0.9,
+    galaxyAlpha: 0.55,
     galaxyBlend: THREE.AdditiveBlending,
     linkGold: "#ffd84d",
     linkSteel: "#8a9bb0",
-    linkA: 0.14,
+    linkA: 0.08,
   },
   day: {
     bg: "#cfe4ff",
@@ -57,22 +57,22 @@ const SCENE = {
     pointRim: 12,
     ringGold: "#d99a2b",
     ringSteel: "#3f5f95",
-    ringA: 0.5,
-    ringB: 0.3,
+    ringA: 0.3,
+    ringB: 0.18,
     rainColor: "#5f82b8",
-    rainOpacity: 0.35,
+    rainOpacity: 0.22,
     rainBlend: THREE.NormalBlending,
     beamColor: "#fff3c8",
-    beamBase: 0.14,
-    beamTint: 0.03,
+    beamBase: 0.08,
+    beamTint: 0.02,
     galaxyGold: "1.0, 0.78, 0.22",
     galaxySteel: "0.24, 0.36, 0.55",
     galaxyMix: 0.7,
-    galaxyAlpha: 0.8,
+    galaxyAlpha: 0.5,
     galaxyBlend: THREE.NormalBlending,
     linkGold: "#c08a1c",
     linkSteel: "#3f5f95",
-    linkA: 0.22,
+    linkA: 0.14,
   },
 } as const;
 
@@ -96,7 +96,7 @@ export default function NeuralScene({ theme = "night" }: { theme?: SceneTheme })
         <pointLight position={[3.5, 4.5, 5]} color="#dfe8ff" intensity={c.pointRim} />
         <CameraRig />
         {isDay ? null : (
-          <Stars radius={110} depth={60} count={IS_COMPACT ? 700 : 1400} factor={3} fade speed={0.35} />
+          <Stars radius={110} depth={60} count={IS_COMPACT ? 500 : 900} factor={2.5} fade speed={0.35} />
         )}
         <EnvironmentProbe />
         <BatmanEmblem theme={theme} />
@@ -187,8 +187,8 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
       inner.current.position.y = Math.sin(t * 0.7) * 0.12;
     }
     if (glowMat.current) {
-      const g = 0.5 + Math.sin(t * 1.7) * 0.18;
-      glowMat.current.opacity = (theme === "day" ? 0.32 : 0.7) * g;
+      const g = 0.5 + Math.sin(t * 1.7) * 0.12;
+      glowMat.current.opacity = (theme === "day" ? 0.2 : 0.4) * g;
     }
     if (halo.current) {
       halo.current.rotation.z = t * 0.12;
@@ -202,17 +202,17 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
   return (
     <group ref={outer} position={[0, 0.1, 0]}>
       <group ref={inner} position={[0, 0.35, 0]} scale={compactScale}>
-        <sprite scale={[8.4, 4, 1]} position={[0, 0, -0.55]}>
+        <sprite scale={[6.4, 3.1, 1]} position={[0, 0, -0.55]}>
           <spriteMaterial
             ref={glowMat}
             map={glowTex}
             transparent
-            opacity={0.7}
+            opacity={0.4}
             depthWrite={false}
             blending={THREE.AdditiveBlending}
           />
         </sprite>
-        <mesh geometry={geometry} scale={1.45}>
+        <mesh geometry={geometry} scale={1.05}>
           <meshStandardMaterial
             color="#e2a63c"
             metalness={0.92}
@@ -224,8 +224,8 @@ function BatmanEmblem({ theme }: { theme: SceneTheme }) {
         </mesh>
       </group>
       <mesh ref={halo} rotation={[1.85, 0.2, 0]} position={[0, 0.35, 0]} scale={compactScale}>
-        <torusGeometry args={[3.05, 0.018, 8, 140]} />
-        <meshBasicMaterial color={gold} transparent opacity={theme === "day" ? 0.4 : 0.28} />
+        <torusGeometry args={[2.7, 0.016, 8, 140]} />
+        <meshBasicMaterial color={gold} transparent opacity={theme === "day" ? 0.28 : 0.18} />
       </mesh>
     </group>
   );
@@ -241,7 +241,7 @@ function ParticleGalaxy({ theme }: { theme: SceneTheme }) {
   const c = SCENE[theme];
 
   const { positions, connections } = useMemo(() => {
-    const count = IS_COMPACT ? 280 : 520;
+    const count = IS_COMPACT ? 210 : 340;
     const pts = new Float32Array(count * 3);
     const nodes: THREE.Vector3[] = [];
 
@@ -277,8 +277,8 @@ function ParticleGalaxy({ theme }: { theme: SceneTheme }) {
 
   useFrame(({ clock }) => {
     if (pointsRef.current) {
-      pointsRef.current.rotation.y = clock.elapsedTime * 0.05 + mouse.current.x * 0.2;
-      pointsRef.current.rotation.x = mouse.current.y * 0.1;
+      pointsRef.current.rotation.y = clock.elapsedTime * 0.03 + mouse.current.x * 0.12;
+      pointsRef.current.rotation.x = mouse.current.y * 0.06;
     }
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = clock.elapsedTime;
@@ -307,13 +307,13 @@ function ParticleGalaxy({ theme }: { theme: SceneTheme }) {
             varying float vPulse;
             void main() {
               vec3 pos = position;
-              float wave = sin(position.x * 2.8 + uTime * 1.1) * 0.09;
+              float wave = sin(position.x * 2.8 + uTime * 1.1) * 0.05;
               pos += normalize(position) * wave;
-              pos.x += uMouse.x * 0.12;
-              pos.y += uMouse.y * 0.08;
+              pos.x += uMouse.x * 0.07;
+              pos.y += uMouse.y * 0.05;
               vPulse = wave;
               vec4 mv = modelViewMatrix * vec4(pos, 1.0);
-              gl_PointSize = 3.2 * (8.0 / -mv.z);
+              gl_PointSize = 2.2 * (8.0 / -mv.z);
               gl_Position = projectionMatrix * mv;
             }
           `}
@@ -358,8 +358,8 @@ function PipelineRings({ theme }: { theme: SceneTheme }) {
 
   useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    groupRef.current.rotation.z = clock.elapsedTime * 0.035;
-    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.16) * 0.2;
+    groupRef.current.rotation.z = clock.elapsedTime * 0.025;
+    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.16) * 0.14;
   });
 
   return (
@@ -381,7 +381,7 @@ function PipelineRings({ theme }: { theme: SceneTheme }) {
 /* ------------------------------------------------------------------ */
 /* Gotham rain: falling line streaks                                    */
 /* ------------------------------------------------------------------ */
-const RAIN_COUNT = IS_COMPACT ? 260 : 480;
+const RAIN_COUNT = IS_COMPACT ? 190 : 320;
 
 function GothamRain({ theme }: { theme: SceneTheme }) {
   const linesRef = useRef<THREE.LineSegments>(null);
@@ -443,7 +443,7 @@ function BatSignalBeam({ theme }: { theme: SceneTheme }) {
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
     const t = clock.elapsedTime;
-    meshRef.current.rotation.z = Math.sin(t * 0.2) * 0.16;
+    meshRef.current.rotation.z = Math.sin(t * 0.2) * 0.1;
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
     mat.opacity = c.beamBase + Math.sin(t * 0.8) * c.beamTint;
   });
@@ -490,15 +490,15 @@ function LightningController() {
     const strike = () => {
       if (cancelled) return;
       if (flashMatRef.current) {
-        flashMatRef.current.opacity = 1;
+        flashMatRef.current.opacity = 0.85;
         gsap.to(flashMatRef.current, { opacity: 0, duration: 0.5, ease: "power2.out" });
       }
-      shakeRef.current = 0.12;
+      shakeRef.current = 0.06;
       gsap.to(shakeRef, { current: 0, duration: 0.6, ease: "power3.out" });
-      timeout = setTimeout(strike, 3500 + Math.random() * 6500);
+      timeout = setTimeout(strike, 5000 + Math.random() * 8000);
     };
 
-    timeout = setTimeout(strike, 2200);
+    timeout = setTimeout(strike, 3200);
     return () => {
       cancelled = true;
       clearTimeout(timeout);

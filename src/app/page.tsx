@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import {
   achievements,
-  batmanQuotes,
   contact,
   footerQuote,
+  heroQuotes,
   heroStats,
   identity,
   internships,
+  marqueeQuotes,
   projects,
   skills,
   techMarquee,
@@ -263,7 +264,7 @@ function Hero() {
             Light the signal <ArrowIcon size={14} />
           </a>
         </div>
-        <QuoteRotator className="hero-quote" />
+        <QuoteRotator quotes={heroQuotes} className="hero-quote" />
       </motion.div>
 
       <div className="gotham-skyline" aria-hidden="true">
@@ -296,16 +297,16 @@ function TechMarquee() {
 }
 
 /* ---------- batman quotes ---------- */
-function QuoteRotator({ className }: { className?: string }) {
+function QuoteRotator({ quotes, className }: { quotes: { text: string; source: string }[]; className?: string }) {
   const [index, setIndex] = useState(0);
-  const quote = batmanQuotes[index % batmanQuotes.length];
+  const quote = quotes[index % quotes.length];
 
   useEffect(() => {
     const id = setInterval(() => {
-      setIndex((i) => (i + 1) % batmanQuotes.length);
+      setIndex((i) => (i + 1) % quotes.length);
     }, 6000);
     return () => clearInterval(id);
-  }, []);
+  }, [quotes.length]);
 
   return (
     <div className={`quote-rotator ${className ?? ""}`} role="region" aria-label="Batman quote">
@@ -324,7 +325,7 @@ function QuoteStrip() {
   return (
     <div className="quote-strip">
       <div className="quote-strip-inner">
-        <QuoteRotator />
+        <QuoteRotator quotes={marqueeQuotes} />
       </div>
     </div>
   );

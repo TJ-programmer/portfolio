@@ -1,13 +1,28 @@
-export const batmanQuotes = [
+export const heroQuotes = [
   { text: "It's not who I am underneath, but what I do that defines me.", source: "Batman" },
   { text: "Why do we fall, sir? So that we can learn to pick ourselves up.", source: "Alfred Pennyworth" },
-  { text: "You either die a hero, or you live long enough to see yourself become the villain.", source: "Harvey Dent" },
+  { text: "As a symbol I can be incorruptible, I can be everlasting.", source: "Bruce Wayne" },
+  { text: "If you make yourself more than just a man, you become something else entirely.", source: "Batman" },
   { text: "The night is darkest just before the dawn. And I promise you, the dawn is coming.", source: "Harvey Dent" },
   { text: "A hero can be anyone... putting a coat around a young boy's shoulders to let him know the world hadn't ended.", source: "Batman" },
-  { text: "If you're good at something, never do it for free.", source: "The Joker" },
-  { text: "The training is nothing. The will is everything.", source: "Ra's al Ghul" },
-  { text: "It's not the money. It's the message.", source: "Batman" },
+  { text: "Some men aren't looking for anything logical, like money. They can't be bought, bullied, reasoned, or negotiated with.", source: "Alfred Pennyworth" },
   { text: "The world only makes sense when you force it to.", source: "Batman" },
+  { text: "I'm whatever Gotham needs me to be.", source: "Batman" },
+];
+
+export const marqueeQuotes = [
+  { text: "You either die a hero, or you live long enough to see yourself become the villain.", source: "Harvey Dent" },
+  { text: "If you're good at something, never do it for free.", source: "The Joker" },
+  { text: "It's not the money. It's the message.", source: "Batman" },
+  { text: "The training is nothing. The will is everything.", source: "Ra's al Ghul" },
+  { text: "Madness, as you know, is like gravity. All it takes is a little push.", source: "The Joker" },
+  { text: "The fire rises.", source: "Bane" },
+  { text: "I was wondering what would break first... your spirit, or your body?", source: "Bane" },
+  { text: "Why so serious?", source: "The Joker" },
+  { text: "This city deserves a better class of criminal, and I'm gonna give it to them.", source: "The Joker" },
+  { text: "Sometimes the truth isn't good enough. Sometimes people deserve more.", source: "Batman" },
+  { text: "Death does not wait for you to be ready.", source: "Ra's al Ghul" },
+  { text: "People need dramatic examples to shake them out of apathy.", source: "Bruce Wayne" },
 ];
 
 export const footerQuote = {
